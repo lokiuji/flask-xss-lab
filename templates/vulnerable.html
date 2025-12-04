@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    
+    <div style="background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center; font-weight: bold;">
+        ⚠️ УВАГА: На цій сторінці виконується будь-який код!
+    </div>
+
+    <!-- Секція файлів -->
+    <div class="box" style="border-top: 4px solid #e74c3c;">
+        <h3 style="color: #e74c3c; margin-top: 0;">📂 Всі файли (Без фільтрації)</h3>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+        {% if files %}
+            <ul style="list-style: none; padding: 0;">
+                {% for file in files %}
+                    <li style="padding: 10px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #e74c3c;">💀 {{ file[0] }} <small>({{ file[1] }})</small></span>
+                        <a href="/uploads/{{ file[0] }}" target="_blank" class="btn btn-red" style="padding: 5px 10px; font-size: 12px; text-decoration: none;">Запустити</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div style="text-align: center; padding: 20px; color: #999;">Пусто...</div>
+        {% endif %}
+    </div>
+
+    <!-- Секція коментарів -->
+    <div class="box" style="border-top: 4px solid #e74c3c; margin-top: 20px;">
+        <h3 style="color: #e74c3c; margin-top: 0;">💬 Вразливі коментарі (XSS)</h3>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+        {% if comments %}
+            {% for comment in comments %}
+                <div style="background: #fff; padding: 15px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #eee; overflow-x: auto;">
+                    <!-- ВРАЗЛИВІСТЬ ТУТ: | safe -->
+                    {{ comment[0] | safe }}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 20px; color: #999;">Пусто...</div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

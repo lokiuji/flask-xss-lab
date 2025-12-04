@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1 style="text-align: center; color: #3498db;">🛡️ XSS LAB</h1>
+    <div class="box" style="border-left: 5px solid #3498db;">
+        <h3>💬 Inject Stored XSS</h3>
+        <form method="post" action="/" class="ajax-form">
+            <input type="text" name="content" style="width: 70%; padding: 10px;" placeholder="Paste script...">
+            <button type="submit" class="btn btn-blue">SEND</button>
+        </form>
+    </div>
+    <div class="box">
+        <div style="text-align: center;">
+            <button onclick="window.open('/vulnerable'); window.open('/secure');" class="btn btn-blue" style="padding: 15px 40px; font-size: 18px;">🚀 ВІДКРИТИ ОБИДВА ВІКНА (DEMO)</button>
+        </div>
+    </div>
+{% endblock %}

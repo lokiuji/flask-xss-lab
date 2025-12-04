@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1 style="text-align: center; color: #2c3e50;">🛡️ TRAINING HUB</h1>
+    <div class="dash-grid">
+        <div class="dash-card" style="border-color: #3498db;">
+            <h2 style="color: #3498db;">XSS LAB</h2>
+            <p>Stord XSS Attack Simulation.</p>
+            <a href="/" class="btn btn-blue btn-full">OPEN XSS 🚀</a>
+        </div>
+        <div class="dash-card" style="border-color: #e67e22;">
+            <h2 style="color: #e67e22;">SQL INJECTION</h2>
+            <p>Vulnerable SQL Search.</p>
+            <a href="/sqli" class="btn btn-orange btn-full">OPEN SQLi 💉</a>
+        </div>
+        <div class="dash-card" style="border-color: #9b59b6;">
+            <h2 style="color: #9b59b6;">EVASION LAB</h2>
+            <p>Signature Evasion & WAF Bypass.</p>
+            <a href="/stealth" class="btn btn-purple btn-full">OPEN EVASION 🛡️</a>
+        </div>
+    </div>
+{% endblock %}

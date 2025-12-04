@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    
+    <!-- Секція файлів -->
+    <div class="box" style="border-top: 4px solid #27ae60;">
+        <h3 style="color: #27ae60; margin-top: 0;">📂 Безпечні файли</h3>
+        <p style="font-size: 13px; color: #666;">Тут відображаються лише файли, що пройшли перевірку формату.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+        {% if files %}
+            <ul style="list-style: none; padding: 0;">
+                {% for file in files %}
+                    <li style="padding: 10px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                        <span>📄 {{ file[0] }}</span>
+                        <a href="/uploads/{{ file[0] }}" target="_blank" class="btn btn-green" style="padding: 5px 10px; font-size: 12px; text-decoration: none;">Відкрити</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div style="text-align: center; padding: 20px; color: #999; font-style: italic;">
+                Немає завантажених файлів.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Секція коментарів -->
+    <div class="box" style="border-top: 4px solid #27ae60; margin-top: 20px;">
+        <h3 style="color: #27ae60; margin-top: 0;">💬 Безпечні коментарі</h3>
+        <p style="font-size: 13px; color: #666;">Тут працює Auto-escaping. Скрипти відображаються як текст.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+        {% if comments %}
+            {% for comment in comments %}
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 10px; border-left: 3px solid #ddd;">
+                    <!-- ЗАХИСТ ПРАЦЮЄ ТУТ (Jinja2 екранує автоматично) -->
+                    {{ comment[0] }}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 20px; color: #999; font-style: italic;">
+                Коментарів поки немає.
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

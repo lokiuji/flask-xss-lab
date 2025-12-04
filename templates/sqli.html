@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    <h1 style="text-align: center; color: #e67e22;">💉 SQL Injection Lab</h1>
+    <div class="box" style="background: #2c3e50; padding: 30px;">
+        <form method="post" style="display: flex; gap: 15px;">
+            <input type="text" name="search" value="{{ search_term }}" placeholder="Enter SQL payload..." style="flex: 1; padding: 15px; border-radius: 5px;">
+            <button type="submit" class="btn btn-orange">SEARCH</button>
+        </form>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+        <div class="box" style="border-top: 5px solid #e74c3c;">
+            <h3 style="color: #e74c3c;">🔴 Unsafe</h3>
+            {% if vuln_query %}<code style="display:block; background:#222; color:#f00; padding:10px;">{{ vuln_query }}</code>{% endif %}
+            {% if vuln_result %}
+                {% for row in vuln_result %}<div>{{ row }}</div>{% endfor %}
+            {% endif %}
+        </div>
+        <div class="box" style="border-top: 5px solid #27ae60;">
+            <h3 style="color: #27ae60;">🟢 Secure</h3>
+            {% if sec_query %}<code style="display:block; background:#222; color:#0f0; padding:10px;">Parameterized Query</code>{% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
