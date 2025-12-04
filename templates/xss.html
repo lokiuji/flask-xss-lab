@@ -1,16 +1,105 @@
 {% extends 'base.html' %}
+
 {% block content %}
-    <h1 style="text-align: center; color: #3498db;">🛡️ XSS LAB</h1>
+<div style="max-width: 1200px; margin: 0 auto;">
+
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #2c3e50; margin-bottom: 10px;">💬 XSS & File Upload Lab</h1>
+        <p style="color: #7f8c8d;">Завантажте пейлоад, а потім натисніть кнопку знизу, щоб перевірити результат.</p>
+    </div>
+
     <div class="box" style="border-left: 5px solid #3498db;">
-        <h3>💬 Inject Stored XSS</h3>
+        <h3 style="margin-top:0; color: #3498db;">💬 Stored XSS (Коментарі)</h3>
         <form method="post" action="/" class="ajax-form">
-            <input type="text" name="content" style="width: 70%; padding: 10px;" placeholder="Paste script...">
-            <button type="submit" class="btn btn-blue">SEND</button>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" name="content" style="flex: 1; padding: 12px; border: 2px solid #bdc3c7; border-radius: 4px;" placeholder="Вставте скрипт (наприклад: <script>alert(1)</script>)..." required>
+                <button type="submit" class="btn btn-blue" style="width: 200px;">Надіслати Payload</button>
+            </div>
         </form>
     </div>
-    <div class="box">
-        <div style="text-align: center;">
-            <button onclick="window.open('/vulnerable'); window.open('/secure');" class="btn btn-blue" style="padding: 15px 40px; font-size: 18px;">🚀 ВІДКРИТИ ОБИДВА ВІКНА (DEMO)</button>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+        
+        <div class="box" style="border-top: 5px solid #e74c3c; background-color: #fff9f9;">
+            <h3 style="color: #c0392b; margin-top:0;">📂 Вразливе завантаження</h3>
+            <div class="file-rules rules-danger">⚠️ ДОЗВОЛЕНО ВСЕ (HTML, JS, EXE)</div>
+            
+            <form method="post" action="/upload_vulnerable" enctype="multipart/form-data" class="ajax-form">
+                <input type="file" name="file" style="margin-bottom: 10px; width: 100%;">
+                <button type="submit" class="btn btn-red btn-full">Upload (Unsafe)</button>
+            </form>
+            
+            <div class="separator"><span>АБО ОБЕРІТЬ ВІРУС</span></div>
+            
+            <form method="post" action="/upload_preset" class="ajax-form">
+                <input type="hidden" name="mode" value="vulnerable">
+                <select name="filename" class="form-select">
+                    {% for file in preset_files %}
+                        <option value="{{ file }}">🦠 {{ file }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-orange btn-full">Inject Preset</button>
+            </form>
+
+            <div style="margin-top: 15px;">
+                <form method="post" action="/inject_all" class="ajax-form">
+                    <button type="submit" class="btn btn-purple btn-full">💀 INJECT ALL VIRUSES 💀</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="box" style="border-top: 5px solid #27ae60; background-color: #fafffc;">
+            <h3 style="color: #1e8449; margin-top:0;">🔒 Захищене завантаження</h3>
+            <div class="file-rules rules-success">✅ ТІЛЬКИ БЕЗПЕЧНІ (IMG/PDF)</div>
+            
+            <form method="post" action="/upload_secure" enctype="multipart/form-data" class="ajax-form">
+                <input type="file" name="file" style="margin-bottom: 10px; width: 100%;">
+                <button type="submit" class="btn btn-green btn-full">Upload (Secure)</button>
+            </form>
+            
+            <div class="separator"><span>АБО ОБЕРІТЬ ВІРУС</span></div>
+            
+            <form method="post" action="/upload_preset" class="ajax-form">
+                <input type="hidden" name="mode" value="secure">
+                <select name="filename" class="form-select">
+                    {% for file in preset_files %}
+                        <option value="{{ file }}">🧪 {{ file }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-orange btn-full">Try Inject</button>
+            </form>
         </div>
     </div>
+
+    <div style="margin-top: 40px; text-align: center;">
+        <h3 style="color: #7f8c8d; margin-bottom: 20px;">👇 ПЕРЕГЛЯД РЕЗУЛЬТАТІВ 👇</h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+            
+            <div class="box" style="border-top: 5px solid #e74c3c; padding: 40px; text-align: center; transition: transform 0.3s;">
+                <h2 style="color: #c0392b; margin-top: 0; font-size: 24px;">🔴 Вразливе середовище</h2>
+                <p style="color: #666; margin-bottom: 25px;">
+                    Тут виконуються всі скрипти. <br>
+                    <b>Обережно:</b> може зависнути або вкрасти кукі!
+                </p>
+                <a href="/vulnerable" target="_blank" class="btn btn-red" style="font-size: 20px; padding: 15px 30px; display: block; text-decoration: none;">
+                    ВІДКРИТИ В ОКРЕМОМУ ВІКНІ 🚀
+                </a>
+            </div>
+
+            <div class="box" style="border-top: 5px solid #27ae60; padding: 40px; text-align: center; transition: transform 0.3s;">
+                <h2 style="color: #1e8449; margin-top: 0; font-size: 24px;">🟢 Захищене середовище</h2>
+                <p style="color: #666; margin-bottom: 25px;">
+                    Тут працює захист (Escaping). <br>
+                    Скрипти відображаються як текст.
+                </p>
+                <a href="/secure" target="_blank" class="btn btn-green" style="font-size: 20px; padding: 15px 30px; display: block; text-decoration: none;">
+                    ВІДКРИТИ В ОКРЕМОМУ ВІКНІ 🛡️
+                </a>
+            </div>
+            
+        </div>
+    </div>
+
+</div>
 {% endblock %}

@@ -1,24 +1,73 @@
 {% extends 'base.html' %}
+
 {% block content %}
 <div style="max-width: 1000px; margin: 0 auto;">
     <h1 style="text-align: center; color: #e67e22;">💉 SQL Injection Lab</h1>
-    <div class="box" style="background: #2c3e50; padding: 30px;">
+    
+    <div class="box" style="background: #2c3e50; padding: 30px; color: white;">
         <form method="post" style="display: flex; gap: 15px;">
-            <input type="text" name="search" value="{{ search_term }}" placeholder="Enter SQL payload..." style="flex: 1; padding: 15px; border-radius: 5px;">
-            <button type="submit" class="btn btn-orange">SEARCH</button>
+            <input type="text" name="search" value="{{ search_term }}" placeholder="Search User..." style="flex: 1; padding: 15px; border-radius: 5px; border: none; font-family: monospace; font-size: 16px;">
+            <button type="submit" class="btn btn-orange" style="width: 150px;">SEARCH 🔍</button>
         </form>
     </div>
+
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
         <div class="box" style="border-top: 5px solid #e74c3c;">
-            <h3 style="color: #e74c3c;">🔴 Unsafe</h3>
-            {% if vuln_query %}<code style="display:block; background:#222; color:#f00; padding:10px;">{{ vuln_query }}</code>{% endif %}
+            <h3 style="color: #e74c3c; display: flex; justify-content: space-between;">
+                🔴 VULNERABLE
+            </h3>
+            
+            {% if vuln_query %}
+                <div style="background: #222; color: #f00; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-bottom: 10px; word-break: break-all;">
+                    Last Query Executed
+                </div>
+            {% endif %}
+
+            {% if vuln_error %}
+                <div class="alert rules-danger">Database Error</div>
+            {% endif %}
+
             {% if vuln_result %}
-                {% for row in vuln_result %}<div>{{ row }}</div>{% endfor %}
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <tr style="background: #f1f1f1; text-align: left;">
+                            <th style="padding: 5px;">ID</th>
+                            <th style="padding: 5px;">User</th>
+                            <th style="padding: 5px;">Role</th>
+                        </tr>
+                        {% for row in vuln_result %}
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 5px;">{{ row[0] }}</td>
+                            <td style="padding: 5px;">{{ row[1] }}</td>
+                            <td style="padding: 5px;">{{ row[2] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
             {% endif %}
         </div>
+
         <div class="box" style="border-top: 5px solid #27ae60;">
-            <h3 style="color: #27ae60;">🟢 Secure</h3>
-            {% if sec_query %}<code style="display:block; background:#222; color:#0f0; padding:10px;">Parameterized Query</code>{% endif %}
+            <h3 style="color: #27ae60;">🟢 SECURE</h3>
+            
+            {% if sec_result %}
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <tr style="background: #f1f1f1; text-align: left;">
+                            <th style="padding: 5px;">ID</th>
+                            <th style="padding: 5px;">User</th>
+                            <th style="padding: 5px;">Role</th>
+                        </tr>
+                        {% for row in sec_result %}
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 5px;">{{ row[0] }}</td>
+                            <td style="padding: 5px;">{{ row[1] }}</td>
+                            <td style="padding: 5px;">{{ row[2] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

