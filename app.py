@@ -10,22 +10,28 @@ app.secret_key = 'super_secret_key'
 app.config['SESSION_COOKIE_HTTPONLY'] = False 
 app.config['SESSION_COOKIE_SECURE'] = False
 
+# === ВИМИКАЄМО ЗАХИСТ БРАУЗЕРА (Щоб XSS точно працювали) ===
+@app.after_request
+def add_header(response):
+    response.headers['X-XSS-Protection'] = '0'
+    return response
+
 LAST_DB_RESET = time.time()
 
-# === ШЛЯХИ ===
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 DB_PATH = os.path.join(BASE_DIR, 'xss_lab.db')
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'mp4', 'html', 'js', 'svg'}
+# Дозволені розширення для "справжніх" файлів у захищеному режимі
+SAFE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'txt'} 
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# === ПРЕСЕТИ ===
+# --- ПРЕСЕТИ ---
 PRESET_FILES = {
-   'test_alert.html': '<script>alert("XSS Successful!")</script><h1>HACKED</h1>',
+'test_alert.html': '<script>alert("XSS Successful!")</script><h1>HACKED</h1>',
     'evil_image.svg': '''<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg" onload="alert('XSS IN THE HOUSE!')">
         <polygon points="100,10 200,100 0,100" style="fill:brown;stroke:black;stroke-width:3" />
         <rect x="25" y="100" width="150" height="100" style="fill:yellow;stroke:black;stroke-width:3" />
@@ -301,6 +307,7 @@ PRESET_FILES = {
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row # Дозволяє звертатись до колонок по імені
     return conn
 
 def init_db():
@@ -308,7 +315,9 @@ def init_db():
     cur = conn.cursor()
     cur.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT DEFAULT 'user');''')
     cur.execute('''CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL);''')
-    cur.execute('''CREATE TABLE IF NOT EXISTS files (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL, upload_type TEXT NOT NULL);''')
+    # Додаємо колонку is_sanitized для відображення
+    cur.execute('''CREATE TABLE IF NOT EXISTS files (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL, upload_type TEXT NOT NULL, is_sanitized BOOLEAN DEFAULT 0);''')
+    
     cur.execute("SELECT * FROM users WHERE username = 'admin'")
     if not cur.fetchone():
         cur.execute("INSERT INTO users (username, password, role) VALUES ('admin', 'admin', 'admin')")
@@ -318,7 +327,7 @@ def init_db():
 init_db()
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in SAFE_EXTENSIONS
 
 def login_required(f):
     @wraps(f)
@@ -336,6 +345,17 @@ def login_required(f):
 def download_file(name):
     return send_from_directory(app.config['UPLOAD_FOLDER'], name)
 
+# Спеціальний маршрут для читання тексту безпечного файлу
+@app.route('/read_content/<name>')
+@login_required
+def read_content(name):
+    try:
+        with open(os.path.join(app.config['UPLOAD_FOLDER'], name), 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        return content
+    except:
+        return "Error reading file"
+
 @app.route('/check_db_version')
 def check_db_version():
     return jsonify({'version': LAST_DB_RESET})
@@ -351,7 +371,7 @@ def login():
             cur.execute(f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'")
             user = cur.fetchone()
             if user:
-                session['user_id'] = user[0]; session['username'] = user[1]; session['role'] = user[3]
+                session['user_id'] = user['id']; session['username'] = user['username']; session['role'] = user['role']
                 resp = make_response(redirect(url_for('dashboard')))
                 resp.set_cookie('secret_bank_account', '1000000_USD', httponly=False)
                 return resp
@@ -370,7 +390,6 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-# === ОСЬ ТУТ БУЛА ПОМИЛКА: ДОДАНО methods=['GET', 'POST'] ===
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
@@ -411,18 +430,15 @@ def sqli():
 def stealth():
     return render_template('stealth.html')
 
-VIRUS_SIGNATURES = [b'script', b'alert', b'prompt', b'onerror', b'onload', b'eval', b'javascript']
-
 @app.route('/scan_file', methods=['POST'])
 @login_required
 def scan_file():
     file = request.files.get('file')
     if not file: return jsonify({'status':'error', 'message':'No file'})
     content = file.read().lower()
+    VIRUS_SIGNATURES = [b'script', b'alert', b'prompt', b'onerror', b'onload', b'eval', b'javascript']
     detected = [s.decode() for s in VIRUS_SIGNATURES if s in content]
     if detected: return jsonify({'status':'blocked', 'message':f'⛔ BLOCKED: {", ".join(detected)}'})
-    file.seek(0)
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], "stealth_"+file.filename))
     return jsonify({'status':'clean', 'message':'✅ CLEAN'})
 
 @app.route('/upload_vulnerable', methods=['POST'])
@@ -430,20 +446,31 @@ def scan_file():
 def upload_vulnerable():
     file = request.files.get('file')
     if not file: return jsonify({'status':'error', 'message':'No file'})
+    
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
-    save_file_to_db(file.filename, 'vulnerable')
-    return jsonify({'status':'warning', 'message':f'{file.filename} Uploaded'})
+    save_file_to_db(file.filename, 'vulnerable', False)
+    return jsonify({'status':'warning', 'message':f'💀 {file.filename} Executed!'})
 
 @app.route('/upload_secure', methods=['POST'])
 @login_required
 def upload_secure():
     file = request.files.get('file')
     if not file: return jsonify({'status':'error', 'message':'No file'})
-    if allowed_file(file.filename):
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
-        save_file_to_db(file.filename, 'secure')
-        return jsonify({'status':'success', 'message':f'{file.filename} Uploaded'})
-    return jsonify({'status':'error', 'message':'Blocked'})
+    
+    filename = file.filename
+    is_sanitized = False
+    
+    # САНІТИЗАЦІЯ: Якщо файл небезпечний, ми його не блокуємо, а перетворюємо на .txt
+    if not allowed_file(filename):
+        filename = filename + ".txt" # Перетворюємо скрипт на текст
+        is_sanitized = True
+        
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    save_file_to_db(filename, 'secure', is_sanitized)
+    
+    if is_sanitized:
+        return jsonify({'status':'success', 'message':f'🛡️ Sanitized: {filename}'})
+    return jsonify({'status':'success', 'message':f'✅ Uploaded: {filename}'})
 
 @app.route('/upload_preset', methods=['POST'])
 @login_required
@@ -451,10 +478,21 @@ def upload_preset():
     fname = request.form.get('filename')
     mode = request.form.get('mode')
     if fname not in PRESET_FILES: return jsonify({'status':'error'})
+    
+    content = PRESET_FILES[fname]
+    is_sanitized = False
+    
+    # Логіка для захищеного режиму
+    if mode == 'secure':
+        if not allowed_file(fname):
+            fname = fname + ".txt"
+            is_sanitized = True
+            
     with open(os.path.join(app.config['UPLOAD_FOLDER'], fname), 'w', encoding='utf-8') as f: 
-        f.write(PRESET_FILES[fname])
-    save_file_to_db(fname, mode)
-    return jsonify({'status':'success', 'message':f'{fname} Injected'})
+        f.write(content)
+    
+    save_file_to_db(fname, mode, is_sanitized)
+    return jsonify({'status':'success', 'message':f'Injected: {fname}'})
 
 @app.route('/inject_all', methods=['POST'])
 @login_required
@@ -462,7 +500,7 @@ def inject_all():
     for f, c in PRESET_FILES.items():
         with open(os.path.join(app.config['UPLOAD_FOLDER'], f), 'w', encoding='utf-8') as file: 
             file.write(c)
-        save_file_to_db(f, 'vulnerable')
+        save_file_to_db(f, 'vulnerable', False)
     return jsonify({'status':'warning', 'message':'ALL VIRUSES INJECTED'})
 
 @app.route('/reset_db', methods=['POST'])
@@ -484,26 +522,47 @@ def reset_db():
     LAST_DB_RESET = time.time()
     return jsonify({'status':'info', 'message':'DB Cleared'})
 
-def save_file_to_db(name, type):
+def save_file_to_db(name, type, sanitized):
     conn = get_db_connection(); cur = conn.cursor()
-    cur.execute('INSERT INTO files (filename, upload_type) VALUES (?, ?)', (name, type))
+    # is_sanitized = 1 (True) або 0 (False)
+    cur.execute('INSERT INTO files (filename, upload_type, is_sanitized) VALUES (?, ?, ?)', (name, type, 1 if sanitized else 0))
     conn.commit(); conn.close()
 
 @app.route('/vulnerable')
 def win_vuln():
     conn = get_db_connection(); cur = conn.cursor()
     cur.execute('SELECT content FROM comments ORDER BY id DESC'); comms = cur.fetchall()
-    cur.execute('SELECT filename, upload_type FROM files ORDER BY id DESC'); files = cur.fetchall()
+    # Беремо останній файл для автозапуску
+    cur.execute("SELECT filename FROM files WHERE upload_type='vulnerable' ORDER BY id DESC LIMIT 1"); 
+    last_file = cur.fetchone()
+    last_filename = last_file['filename'] if last_file else None
+    
     conn.close()
-    return render_template('vulnerable.html', comments=comms, files=files)
+    return render_template('vulnerable.html', comments=comms, last_file=last_filename)
 
 @app.route('/secure')
 def win_sec():
     conn = get_db_connection(); cur = conn.cursor()
     cur.execute('SELECT content FROM comments ORDER BY id DESC'); comms = cur.fetchall()
-    cur.execute("SELECT filename, upload_type FROM files WHERE upload_type='secure' ORDER BY id DESC"); files = cur.fetchall()
+    
+    # Беремо всі файли, а для санітизованих будемо читати контент
+    cur.execute("SELECT filename, is_sanitized FROM files WHERE upload_type='secure' ORDER BY id DESC LIMIT 1"); 
+    last_file_row = cur.fetchone()
+    
+    last_file = None
+    file_content = None
+    
+    if last_file_row:
+        last_file = last_file_row['filename']
+        if last_file_row['is_sanitized']:
+            # Читаємо файл, щоб показати код
+            try:
+                with open(os.path.join(app.config['UPLOAD_FOLDER'], last_file), 'r', encoding='utf-8', errors='ignore') as f:
+                    file_content = f.read()
+            except: file_content = "Error reading file"
+
     conn.close()
-    return render_template('secure.html', comments=comms, files=files)
+    return render_template('secure.html', comments=comms, last_file=last_file, file_content=file_content)
 
 if __name__ == '__main__':
     app.run(debug=True)
