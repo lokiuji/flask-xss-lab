@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #e67e22; margin-bottom: 10px;">⚡ DOM-Based XSS Lab</h1>
+        <p style="color: #7f8c8d;">Вразливість на стороні клієнта. Дані з URL потрапляють прямо в код сторінки.</p>
+    </div>
+
+    <div class="box" style="border-top: 4px solid #e67e22;">
+        <h3 style="color: #e67e22; margin-top:0;">🛑 Вразлива зона (Sink)</h3>
+        <p style="font-size:13px; color: #666;">
+            Скрипт зчитує <b>window.location.hash</b> (все після #) і вставляє це в блок нижче через <b>innerHTML</b>.
+        </p>
+        
+        <div id="welcome-msg" style="padding: 20px; background: #fdf2e9; border: 2px dashed #e67e22; border-radius: 5px; text-align: center; font-size: 18px; min-height: 50px;">
+            Очікування даних з URL...
+        </div>
+
+        <div style="margin-top: 30px;">
+            <h4 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">🔥 Готові сценарії атак:</h4>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                <button onclick="attack('#<img src=x onerror=alert(\'XSS_SUCCESS\')>')" class="btn btn-orange">1. Image Error (Alert)</button>
+                <button onclick="attack('#<body onload=alert(\'ONLOAD_XSS\')>')" class="btn btn-orange">2. Body OnLoad</button>
+                
+                <button onclick="attack('#<h1 style=\'color:red; font-size:40px\'>ТЕПЕР ЦЕ МІЙ САЙТ</h1>')" class="btn btn-red">3. Defacement (Зміна вигляду)</button>
+                <button onclick="attack('#<button onmouseover=alert(\'Gotcha!\') style=\'padding:20px; font-size:20px; background:black; color:white\'>НАВЕДИ НА МЕНЕ</button>')" class="btn btn-purple">4. Кнопка-пастка (Mouseover)</button>
+            </div>
+            
+            <button onclick="attack('#<div style=\'background:white; padding:20px; border:1px solid #ccc\'><h3 style=\'margin-top:0\'>Session Expired</h3><input placeholder=\'Password\' type=\'password\' style=\'width:100%; padding:10px;\'><br><br><button class=\'btn btn-blue btn-full\'>Login</button></div>')" class="btn btn-blue btn-full" style="margin-top: 15px;">5. Фейкова форма (Phishing)</button>
+        </div>
+    </div>
+
+    <div class="box" style="border-top: 4px solid #7f8c8d; background: #f9f9f9;">
+        <h3 style="color: #7f8c8d; margin-top:0;">💻 Вразливий код JS</h3>
+        <pre class="code-preview" style="background: #2c3e50; height: auto;">
+// Отримуємо хеш з URL (символи після #)
+var hash = decodeURIComponent(window.location.hash.substring(1));
+
+// 💀 НЕБЕЗПЕЧНО: Вставка HTML без перевірки
+if(hash) {
+    document.getElementById("welcome-msg").innerHTML = "Привіт, " + hash;
+}</pre>
+    </div>
+
+</div>
+
+<script>
+    // ВРАЗЛИВА ЛОГІКА
+    var hash = decodeURIComponent(window.location.hash.substring(1));
+    if(hash) {
+        document.getElementById("welcome-msg").innerHTML = "Привіт, " + hash;
+    }
+
+    // Допоміжна функція для кнопок
+    function attack(payload) {
+        window.location.hash = payload;
+        window.location.reload();
+    }
+</script>
+{% endblock %}

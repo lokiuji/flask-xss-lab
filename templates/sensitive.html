@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #16a085; margin-bottom: 10px;">📂 Sensitive Data Exposure</h1>
+        <p style="color: #7f8c8d;">Пошук забутих файлів, бекапів та аналіз прихованих метаданих.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        
+        <div class="box" style="border-top: 4px solid #16a085;">
+            <h3 style="color: #16a085; margin-top:0;">🔍 Directory Listing (Index of /)</h3>
+            <p style="font-size:13px;">Розробники часто забувають закрити доступ до службових файлів. Спробуйте знайти щось цікаве.</p>
+            
+            <div style="background: #fff; border: 1px solid #ccc; padding: 0; font-family: monospace;">
+                <div style="background: #eee; padding: 5px 10px; border-bottom: 1px solid #ccc; font-weight: bold;">
+                    Index of /server_backups/
+                </div>
+                <ul style="list-style: none; padding: 10px; margin: 0;">
+                    <li style="margin-bottom: 5px;">📁 <a href="#">[Parent Directory]</a></li>
+                    {% for file in files %}
+                        <li style="margin-bottom: 5px;">
+                            📄 <a href="/view_exposed/{{ file }}" target="_blank" style="color: #2980b9; text-decoration: none;">{{ file }}</a>
+                            <span style="color: #999; font-size: 11px; float: right;">{{ range(1, 50) | random }}KB</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <p style="font-size: 11px; color: #999; margin-top: 5px;">* Натисніть на файл, щоб відкрити його у новій вкладці.</p>
+        </div>
+
+        <div class="box" style="border-top: 4px solid #2c3e50;">
+            <h3 style="color: #2c3e50; margin-top:0;">📷 Metadata Extractor</h3>
+            <p style="font-size:13px;">Завантажте файл, щоб перевірити, чи не залишили автори в ньому GPS-координати або імена користувачів.</p>
+            
+            <form id="metadata-form">
+                <input type="file" name="file" required style="width: 100%; padding: 10px; border: 1px dashed #ccc; margin-bottom: 10px;">
+                <button type="submit" class="btn btn-blue btn-full" style="background: #2c3e50;">АНАЛІЗУВАТИ ФАЙЛ ⚙️</button>
+            </form>
+
+            <div id="metadata-result" style="margin-top: 15px; display: none;">
+                <h4 style="margin-bottom: 5px; color: #333;">Результат аналізу:</h4>
+                <pre id="metadata-content" style="background: #222; color: #0f0; padding: 15px; border-radius: 5px; font-size: 12px; overflow-x: auto;"></pre>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    document.getElementById('metadata-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const resDiv = document.getElementById('metadata-result');
+        const contentPre = document.getElementById('metadata-content');
+        
+        contentPre.innerText = "Scanning file headers...";
+        resDiv.style.display = 'block';
+        
+        try {
+            const response = await fetch('/analyze_metadata', { method: 'POST', body: formData });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                let formatted = "";
+                for (const [key, value] of Object.entries(data.data)) {
+                    formatted += `${key}: ${value}\n`;
+                }
+                contentPre.innerText = formatted;
+            } else {
+                contentPre.innerText = "Error: " + data.message;
+            }
+        } catch (err) {
+            contentPre.innerText = "System Error";
+        }
+    };
+</script>
+{% endblock %}

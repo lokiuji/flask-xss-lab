@@ -3,7 +3,8 @@ import time
 import sqlite3
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session, make_response, jsonify
-
+from PIL import Image, ExifTags 
+import PyPDF2
 app = Flask(__name__)
 app.secret_key = 'super_secret_key'
 
@@ -119,6 +120,10 @@ def index():
     return render_template('xss.html', preset_files=PRESET_FILES.keys())
 
 # === НОВІ МАРШРУТИ (STEP 1) ===
+@app.route('/dom')
+@login_required
+def dom():
+    return render_template('dom.html')
 
 @app.route('/advanced')
 @login_required
@@ -146,6 +151,92 @@ def check_username():
         
     conn.close()
     return jsonify({'exists': exists})
+
+# === SENSITIVE DATA LAB (STEP 2) ===
+
+# Імітація забутих файлів на сервері
+EXPOSED_FILES_DB = {
+    'backup.sql.bak': "INSERT INTO users (user, pass) VALUES ('admin', 'super_secret_password_2025');\nINSERT INTO users (user, pass) VALUES ('ceo', 'money_money_money');",
+    'debug.log': "[INFO] Server started\n[DEBUG] Connecting to DB with user='root' pass='toor'\n[ERROR] Failed to load module 'secure_auth'",
+    'todo.md': "# TODO List\n1. Remove default passwords\n2. Delete this file before production\n3. API Key: AIzaSyD-1234567890_SECRET_KEY",
+    'id_rsa': "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAtKc...\n(SUPER PRIVATE KEY)\n-----END RSA PRIVATE KEY-----"
+}
+
+@app.route('/sensitive')
+@login_required
+def sensitive():
+    return render_template('sensitive.html', files=EXPOSED_FILES_DB.keys())
+
+@app.route('/view_exposed/<filename>')
+@login_required
+def view_exposed(filename):
+    if filename in EXPOSED_FILES_DB:
+        # Повертаємо вміст як звичайний текст, імітуючи прямий доступ до файлу
+        return EXPOSED_FILES_DB[filename], 200, {'Content-Type': 'text/plain'}
+    return "File not found", 404
+
+@app.route('/analyze_metadata', methods=['POST'])
+@login_required
+def analyze_metadata():
+    file = request.files.get('file')
+    if not file:
+        return jsonify({'status': 'error', 'message': 'Файл не обрано'})
+    
+    filename = file.filename.lower()
+    metadata = {}
+
+    try:
+        # --- ОБРОБКА ЗОБРАЖЕНЬ (Real EXIF) ---
+        if filename.endswith(('.jpg', '.jpeg', '.png', '.tiff')):
+            try:
+                img = Image.open(file)
+                # Отримуємо EXIF дані
+                exif_data = img._getexif()
+                
+                if exif_data:
+                    for tag_id, value in exif_data.items():
+                        # Перетворюємо ID тегу в читабельну назву (напр. GPSInfo, Model)
+                        tag_name = ExifTags.TAGS.get(tag_id, tag_id)
+                        # Фільтруємо занадто довгі бінарні дані (напр. мініатюри)
+                        if tag_name != "MakerNote" and tag_name != "UserComment":
+                            metadata[str(tag_name)] = str(value)[:100] # Обрізаємо довгі рядки
+                else:
+                    metadata["Info"] = "Зображення не містить EXIF метаданих"
+                
+                # Додаємо базову інфо, навіть якщо немає EXIF
+                metadata["Format"] = img.format
+                metadata["Size"] = f"{img.size[0]}x{img.size[1]}"
+                metadata["Mode"] = img.mode
+
+            except Exception as e:
+                metadata["Error"] = f"Image processing failed: {str(e)}"
+
+        # --- ОБРОБКА PDF (Real Props) ---
+        elif filename.endswith('.pdf'):
+            try:
+                reader = PyPDF2.PdfReader(file)
+                doc_info = reader.metadata
+                
+                if doc_info:
+                    for key, value in doc_info.items():
+                        # Видаляємо слеш перед ключем (напр. /Author -> Author)
+                        clean_key = key.replace('/', '')
+                        metadata[clean_key] = str(value)
+                else:
+                    metadata["Info"] = "PDF не містить метаданих"
+                
+                metadata["Pages"] = len(reader.pages)
+
+            except Exception as e:
+                metadata["Error"] = f"PDF processing failed: {str(e)}"
+
+        else:
+            metadata["Warning"] = "Цей формат поки не підтримується для глибокого аналізу"
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+    return jsonify({'status': 'success', 'data': metadata})
 
 # === OLD ROUTES ===
 
