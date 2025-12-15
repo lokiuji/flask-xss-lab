@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #8e44ad; margin-bottom: 10px;">🧪 Advanced Lab</h1>
+        <p style="color: #7f8c8d;">Специфічні атаки: Client-Side XSS та сліпі ін'єкції.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        
+        <div class="box" style="border-top: 4px solid #e67e22;">
+            <h3 style="color: #e67e22; margin-top:0;">1. DOM-Based XSS</h3>
+            <p style="font-size:13px;">Скрипт зчитує дані з URL (після #) і вставляє їх у сторінку без перевірки.</p>
+            
+            <div id="welcome-msg" style="padding: 15px; background: #fdf2e9; border: 1px dashed #e67e22; border-radius: 5px; text-align: center;">
+                Очікування хештегу...
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <p style="font-size: 12px; color: #666;">Натисніть кнопку, щоб симулювати атаку:</p>
+                <button onclick="attackDom()" class="btn btn-orange btn-full">АТАКУВАТИ ЧЕРЕЗ URL # 🔗</button>
+            </div>
+
+            <script>
+                // ВРАЗЛИВИЙ КОД
+                // Ми читаємо все, що після # в адресному рядку
+                var hash = decodeURIComponent(window.location.hash.substring(1));
+                
+                // І вставляємо це як HTML (innerHTML) - це і є DOM XSS
+                if(hash) {
+                    document.getElementById("welcome-msg").innerHTML = "Привіт, " + hash;
+                }
+
+                function attackDom() {
+                    // Перезавантажуємо сторінку з шкідливим хешем
+                    window.location.hash = "#<img src=x onerror=alert('DOM_XSS_SUCCESS')>";
+                    window.location.reload();
+                }
+            </script>
+        </div>
+
+        <div class="box" style="border-top: 4px solid #2c3e50;">
+            <h3 style="color: #2c3e50; margin-top:0;">2. Blind SQL Injection</h3>
+            <p style="font-size:13px;">База даних відповідає лише "Так" або "Ні". Помилок не видно.</p>
+            
+            <form id="blind-form" class="ajax-form">
+                <input type="text" name="username" placeholder="Check username (e.g. admin)" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
+                <button type="submit" class="btn btn-blue btn-full" style="background: #2c3e50;">ПЕРЕВІРИТИ НАЯВНІСТЬ</button>
+            </form>
+
+            <div id="blind-result" style="margin-top: 15px; text-align: center; font-weight: bold; min-height: 20px;"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Обробка форми Blind SQL
+    document.getElementById('blind-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const resDiv = document.getElementById('blind-result');
+        
+        resDiv.innerHTML = "Checking...";
+        
+        try {
+            const response = await fetch('/api/check_username', { method: 'POST', body: formData });
+            const data = await response.json();
+            
+            if (data.exists) {
+                resDiv.innerHTML = "<span style='color:green'>✅ User exists (TRUE)</span>";
+            } else {
+                resDiv.innerHTML = "<span style='color:red'>❌ User not found (FALSE)</span>";
+            }
+        } catch (err) {
+            resDiv.innerHTML = "Error connecting to server";
+        }
+    };
+</script>
+{% endblock %}

