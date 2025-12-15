@@ -125,10 +125,10 @@ def index():
 def dom():
     return render_template('dom.html')
 
-@app.route('/advanced')
+@app.route('/blind')
 @login_required
-def advanced():
-    return render_template('advanced.html')
+def blind():
+    return render_template('blind.html')
 
 # BLIND SQL ENDPOINT
 @app.route('/api/check_username', methods=['POST'])

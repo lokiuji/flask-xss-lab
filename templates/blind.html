@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #2c3e50; margin-bottom: 10px;">🕵️ Blind SQL Injection</h1>
+        <p style="color: #7f8c8d;">База даних відповідає лише "Так" або "Ні". Помилки приховані.</p>
+    </div>
+
+    <div class="box" style="border-top: 4px solid #2c3e50;">
+        <h3 style="color: #2c3e50; margin-top:0;">🔍 User Check (Boolean Based)</h3>
+        <p style="font-size:13px;">Введіть ім'я користувача, щоб перевірити його наявність. Спробуйте ін'єкцію, щоб отримати <b>TRUE</b> відповідь для невідомого користувача.</p>
+        
+        <form id="blind-form" class="ajax-form">
+            <input type="text" name="username" placeholder="Check username (e.g. admin)" style="width: 100%; padding: 12px; margin-bottom: 15px; box-sizing: border-box; border: 2px solid #bdc3c7; border-radius: 4px; font-family: monospace; font-size: 16px;">
+            <button type="submit" class="btn btn-blue btn-full" style="background: #2c3e50;">ПЕРЕВІРИТИ (TRUE/FALSE)</button>
+        </form>
+
+        <div id="blind-result" style="margin-top: 20px; text-align: center; font-weight: bold; min-height: 40px; padding: 10px; border-radius: 5px; background: #f9f9f9;">
+            Очікування запиту...
+        </div>
+    </div>
+
+    <div class="box" style="border-top: 4px solid #95a5a6; background: #f4f6f7;">
+        <h3 style="color: #7f8c8d; margin-top:0;">💡 Як це працює?</h3>
+        <p style="font-size: 13px; color: #555;">Сервер виконує запит:</p>
+        <code style="background: #222; color: #e74c3c; padding: 5px; display: block; margin-bottom: 10px; border-radius: 3px;">SELECT * FROM users WHERE username = '<span style="color:yellow">INPUT</span>'</code>
+        <p style="font-size: 13px; color: #555;">Якщо результат є — повертається TRUE. Якщо немає (або сталася помилка) — FALSE.</p>
+    </div>
+
+</div>
+
+<script>
+    document.getElementById('blind-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const resDiv = document.getElementById('blind-result');
+        
+        resDiv.innerHTML = "Checking...";
+        resDiv.style.background = "#f9f9f9";
+        
+        try {
+            const response = await fetch('/api/check_username', { method: 'POST', body: formData });
+            const data = await response.json();
+            
+            if (data.exists) {
+                resDiv.innerHTML = "<span style='color:#27ae60; font-size: 18px;'>✅ User exists (TRUE)</span>";
+                resDiv.style.background = "#d4efdf";
+            } else {
+                resDiv.innerHTML = "<span style='color:#c0392b; font-size: 18px;'>❌ User not found (FALSE)</span>";
+                resDiv.style.background = "#fadbd8";
+            }
+        } catch (err) {
+            resDiv.innerHTML = "Error connecting to server";
+        }
+    };
+</script>
+{% endblock %}
